@@ -45,6 +45,10 @@ import org.meshtastic.core.prefs.di.CorePrefsModule
 import org.meshtastic.core.service.di.CoreServiceAndroidModule
 import org.meshtastic.core.service.di.CoreServiceModule
 import org.meshtastic.core.ui.di.CoreUiModule
+import org.meshtastic.feature.achievements.di.AchievementsModule
+import org.meshtastic.feature.achievements.di.FeatureAchievementsAndroidModule
+import org.meshtastic.feature.ai.di.AiModule
+import org.meshtastic.feature.ai.di.FeatureAiAndroidModule
 import org.meshtastic.feature.connections.di.FeatureConnectionsModule
 import org.meshtastic.feature.firmware.di.FeatureFirmwareModule
 import org.meshtastic.feature.intro.di.FeatureIntroModule
@@ -53,6 +57,8 @@ import org.meshtastic.feature.messaging.di.FeatureMessagingModule
 import org.meshtastic.feature.node.di.FeatureNodeModule
 import org.meshtastic.feature.settings.di.FeatureSettingsModule
 import org.meshtastic.feature.widget.di.FeatureWidgetModule
+import org.meshtastic.feature.voiceburst.di.FeatureVoiceBurstAndroidModule
+import org.meshtastic.feature.voiceburst.di.FeatureVoiceBurstModule
 
 @Module(
     includes =
@@ -85,6 +91,12 @@ import org.meshtastic.feature.widget.di.FeatureWidgetModule
         FeatureFirmwareModule::class,
         FeatureIntroModule::class,
         FeatureWidgetModule::class,
+        FeatureAchievementsAndroidModule::class,
+        AchievementsModule::class,
+        AiModule::class,
+        FeatureAiAndroidModule::class,
+        FeatureVoiceBurstModule::class,
+        FeatureVoiceBurstAndroidModule::class,
         NetworkModule::class,
         FlavorModule::class,
     ],

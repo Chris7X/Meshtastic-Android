@@ -45,6 +45,9 @@ include(
     ":feature:settings",
     ":feature:firmware",
     ":feature:widget",
+    ":feature:achievements",
+    ":feature:voiceburst",
+    ":feature:ai",
     ":mesh_service_example",
     ":desktop",
 )

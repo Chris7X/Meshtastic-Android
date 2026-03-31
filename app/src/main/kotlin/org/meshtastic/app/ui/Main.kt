@@ -41,6 +41,7 @@ import org.meshtastic.core.ui.component.MeshtasticAppShell
 import org.meshtastic.core.ui.component.MeshtasticNavDisplay
 import org.meshtastic.core.ui.component.MeshtasticNavigationSuite
 import org.meshtastic.core.ui.viewmodel.UIViewModel
+import org.meshtastic.feature.achievements.navigation.achievementsGraph
 import org.meshtastic.feature.connections.navigation.connectionsGraph
 import org.meshtastic.feature.firmware.navigation.firmwareGraph
 import org.meshtastic.feature.map.navigation.mapGraph
@@ -76,6 +77,7 @@ fun MainScreen() {
                     connectionsGraph(backStack)
                     settingsGraph(backStack)
                     firmwareGraph(backStack)
+                    achievementsGraph(backStack)
                 }
             MeshtasticNavDisplay(
                 multiBackstack = multiBackstack,

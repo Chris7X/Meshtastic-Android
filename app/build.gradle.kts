@@ -236,6 +236,9 @@ dependencies {
     implementation(projects.feature.settings)
     implementation(projects.feature.firmware)
     implementation(projects.feature.widget)
+    implementation(projects.feature.achievements)
+    implementation(projects.feature.voiceburst)
+    implementation(projects.feature.ai)
 
     implementation(libs.jetbrains.compose.material3.adaptive)
     implementation(libs.jetbrains.compose.material3.adaptive.layout)

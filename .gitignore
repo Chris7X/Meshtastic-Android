@@ -53,3 +53,4 @@ wireless-install.sh
 .worktrees/
 /firebase-debug.log.jdk/
 firebase-debug.log
+feature/ai/src/androidMain/assets/*.litertlm
