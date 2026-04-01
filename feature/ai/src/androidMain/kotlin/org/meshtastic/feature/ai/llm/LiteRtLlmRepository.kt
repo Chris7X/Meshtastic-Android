@@ -48,8 +48,8 @@ class LiteRtLlmRepository(
 
     private fun getTemplateFallback(message: String, languageCode: String): List<String> {
         val lower = message.lowercase().trim()
-        // Seed deterministico: stesso messaggio -> stesse 3 risposte nella sessione,
-        // messaggi diversi -> ordine diverso dal pool di 6 -> varieta' percepita.
+        // Deterministic seed: same message -> same 3 replies in the session,
+        // different messages -> different order from pool of 6 -> perceived variety.
         val rng = java.util.Random(lower.hashCode().toLong())
 
         val pool: List<String> = when {

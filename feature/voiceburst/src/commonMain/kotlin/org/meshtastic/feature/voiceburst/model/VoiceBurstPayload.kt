@@ -17,55 +17,55 @@
 package org.meshtastic.feature.voiceburst.model
 
 /**
- * Payload di un Voice Burst pronto per la trasmissione o appena ricevuto.
+ * Payload of a Voice Burst ready for transmission or just received.
  *
- * Dimensioni target MVP:
- *   - audioData: ~88 bytes (Codec2 700B, 1 secondo a 700 bps)
+ * Target MVP sizes:
+ *   - audioData: ~88 bytes (Codec2 700B, 1 second at 700 bps)
  *   - overhead metadata: ~12 bytes
- *   - totale: < 120 bytes → entra in un singolo MeshPacket (max ~240 bytes)
+ *   - total: < 120 bytes → fits in a single MeshPacket (max ~240 bytes)
  *
- * PortNum: PRIVATE_APP = 256 (provvisorio — open question nel PRD)
- * TODO: definire proto ufficiale o richiedere portnum registrato upstream.
+ * PortNum: PRIVATE_APP = 256 (provisional — open question in the PRD)
+ * TODO: define official proto or request a registered portnum upstream.
  *
- * Serializzazione MVP: bytes raw prefissati con un header minimo a lunghezza fissa:
+ * MVP serialization: raw bytes prefixed with a minimal fixed-length header:
  *   [1 byte version=1][1 byte codecMode][2 bytes durationMs][N bytes audioData]
- * Questo evita la dipendenza da protobuf aggiuntivo nel modulo per MVP.
+ * This avoids an additional protobuf dependency in the module for MVP.
  */
 data class VoiceBurstPayload(
     /**
-     * Versione del formato del payload.
-     * Incrementare se il formato cambia, per permettere graceful degradation.
+     * Version of the payload format.
+     * Increment if the format changes, to allow graceful degradation.
      */
     val version: Byte = 1,
 
     /**
-     * Modalità codec usata per l'encoding.
-     * 0 = Codec2 700B (unico valore supportato in MVP)
-     * TODO: mappare a enum Codec2Mode quando disponibile.
+     * Codec mode used for encoding.
+     * 0 = Codec2 700B (only supported value in MVP)
+     * TODO: map to Codec2Mode enum when available.
      */
     val codecMode: Byte = 0,
 
     /**
-     * Durata effettiva dell'audio registrato, in millisecondi.
-     * MVP: sempre ≤ 1000ms.
+     * Actual duration of the recorded audio, in milliseconds.
+     * MVP: always ≤ 1000ms.
      */
     val durationMs: Short,
 
     /**
-     * Bytes audio compressi con Codec2.
-     * MVP: ~88 bytes per 1 secondo a 700B.
+     * Audio bytes compressed with Codec2.
+     * MVP: ~88 bytes per 1 second at 700B.
      */
     val audioData: ByteArray,
 
     /**
-     * ID del nodo mittente (usato lato receiver per il display).
-     * Popolato dal receiver con il from del DataPacket.
+     * Sender node ID (used on the receiver side for display).
+     * Populated by the receiver with the from field of the DataPacket.
      */
     val senderNodeId: String = "",
 ) {
 
     /**
-     * Serializza il payload in un ByteArray da inserire in [DataPacket.bytes].
+     * Serializes the payload into a ByteArray to insert into [DataPacket.bytes].
      * Formato: [version:1][codecMode:1][durationMs:2 BE][audioData:N]
      */
     fun encode(): ByteArray {
@@ -98,20 +98,20 @@ data class VoiceBurstPayload(
     }
 
     companion object {
-        /** PortNum provvisorio per MVP. PRIVATE_APP = 256. */
+        /** Provisional PortNum for MVP. PRIVATE_APP = 256. */
         const val PORT_NUM = 256
 
-        /** Durata massima supportata in MVP (1 secondo). */
+        /** Maximum duration supported in MVP (1 second). */
         const val MAX_DURATION_MS = 1000
 
         /**
-         * Deserializza un payload ricevuto da un [DataPacket].
-         * Restituisce null se il formato non è riconoscibile o la versione non è supportata.
+         * Deserializes a payload received from a [DataPacket].
+         * Returns null if the format is unrecognizable or the version is not supported.
          */
         fun decode(bytes: ByteArray, senderNodeId: String = ""): VoiceBurstPayload? {
-            if (bytes.size < 5) return null // minimo: header 4 bytes + 1 byte audio
+            if (bytes.size < 5) return null // minimum: 4-byte header + 1 byte audio
             val version = bytes[0]
-            if (version != 1.toByte()) return null // versione non supportata
+            if (version != 1.toByte()) return null // unsupported version
             val codecMode = bytes[1]
             val durationMs = (((bytes[2].toInt() and 0xFF) shl 8) or (bytes[3].toInt() and 0xFF)).toShort()
             val audioData = bytes.copyOfRange(4, bytes.size)

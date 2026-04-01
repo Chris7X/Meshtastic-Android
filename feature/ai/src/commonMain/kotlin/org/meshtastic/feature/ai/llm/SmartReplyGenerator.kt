@@ -49,7 +49,7 @@ class SmartReplyGenerator(
                 return@runCatching getFallbackReplies(languageCode)
             }
             
-            // Aggiungi il messaggio ricevuto come ultimo messaggio del contesto
+            // Add the received message as the last message in the context
             val messagesWithContext = recentHistory.takeLast(MAX_CONTEXT_MESSAGES - 1).toMutableList()
             messagesWithContext.add(
                 MessageContext(

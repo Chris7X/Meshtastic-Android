@@ -17,69 +17,69 @@
 package org.meshtastic.feature.voiceburst.model
 
 /**
- * Stati del ciclo di vita di un Voice Burst.
+ * States of the lifecycle of a Voice Burst.
  *
- * Transizioni valide:
+ * Valid transitions:
  *   Idle → Recording → Encoding → Sending → Sent
- *   Qualsiasi stato → Error
- *   Qualsiasi stato → Unsupported (se preset incompatibile rilevato)
+ *   Any state → Error
+ *   Any state → Unsupported (if incompatible preset detected)
  */
 sealed class VoiceBurstState {
-    /** Pronto per registrare. Nessuna operazione in corso. */
+    /** Ready to record. No operation in progress. */
     data object Idle : VoiceBurstState()
 
     /**
-     * Registrazione audio in corso.
-     * @param elapsedMs millisecondi trascorsi dall'inizio della registrazione.
+     * Audio recording in progress.
+     * @param elapsedMs milliseconds elapsed since the start of recording.
      */
     data class Recording(val elapsedMs: Long = 0L) : VoiceBurstState()
 
-    /** Encoding Codec2 in corso (operazione veloce, tipicamente < 50ms). */
+    /** Codec2 encoding in progress (fast operation, typically < 50ms). */
     data object Encoding : VoiceBurstState()
 
     /**
-     * Pacchetto in coda per l'invio via RadioController.
-     * Entra in questo stato se il nodo è temporaneamente disconnesso.
+     * Packet queued for sending via RadioController.
+     * Enters this state if the node is temporarily disconnected.
      */
     data object Queued : VoiceBurstState()
 
-    /** Pacchetto consegnato al nodo via BLE. In attesa di ACK (opzionale). */
+    /** Packet delivered to the node via BLE. Waiting for ACK (optional). */
     data object Sending : VoiceBurstState()
 
-    /** Invio completato con successo. */
+    /** Send completed successfully. */
     data object Sent : VoiceBurstState()
 
-    /** Burst ricevuto da remoto. Pronto per il playback. */
+    /** Burst received from remote. Ready for playback. */
     data class Received(val payload: VoiceBurstPayload) : VoiceBurstState()
 
     /**
-     * Errore durante il ciclo di vita del burst.
-     * @param reason causa dell'errore.
+     * Error during the burst lifecycle.
+     * @param reason cause of the error.
      */
     data class Error(val reason: VoiceBurstError) : VoiceBurstState()
 
     /**
-     * Feature non disponibile nel contesto corrente.
-     * Mostrato quando: preset sub-1GHz lento, feature flag disabilitato,
-     * o destinatario non supporta il portnum.
+     * Feature not available in the current context.
+     * Shown when: slow sub-1GHz preset, feature flag disabled,
+     * or recipient does not support the portnum.
      */
     data class Unsupported(val reason: String) : VoiceBurstState()
 }
 
-/** Cause di errore per [VoiceBurstState.Error]. */
+/** Error causes for [VoiceBurstState.Error]. */
 enum class VoiceBurstError {
-    /** Permesso microfono negato dall'utente. */
+    /** Microphone permission denied by the user. */
     MICROPHONE_PERMISSION_DENIED,
 
-    /** Errore durante la registrazione audio. */
+    /** Error during audio recording. */
     RECORDING_FAILED,
 
-    /** Encoding Codec2 fallito (stub o libreria non disponibile). */
+    /** Codec2 encoding failed (stub or library not available). */
     ENCODING_FAILED,
 
-    /** Nodo destinatario non raggiungibile. */
+    /** Destination node not reachable. */
     SEND_FAILED,
 
-    /** Rate limit: troppi burst in poco tempo. Attendere almeno 30s. */
+    /** Rate limit: too many bursts in a short time. Wait at least 30s. */
     RATE_LIMITED,
 }
