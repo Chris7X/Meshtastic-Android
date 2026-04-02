@@ -269,6 +269,7 @@ fun ContactsScreen(
                     onShareChannels = onNavigateToShare,
                     onDismissSharedContact = { onClearSharedContactRequested() },
                     isContactContext = true,
+                    onNewListClick = { /* TODO: implement navigation if needed */ },
                 )
             }
         },

@@ -85,6 +85,7 @@ fun MeshtasticImportFAB(
     onShareChannels: (() -> Unit)? = null,
     isContactContext: Boolean = true,
     testTag: String? = null,
+    onNewListClick: (() -> Unit)? = null,
     importDialog: @Composable (SharedContact, () -> Unit) -> Unit = { contact, dismiss ->
         SharedContactImportDialog(sharedContact = contact, onDismiss = dismiss)
     },
@@ -195,6 +196,17 @@ fun MeshtasticImportFAB(
                 icon = MeshtasticIcons.QrCode2,
                 onClick = it,
                 testTag = "share_channels",
+            ),
+        )
+    }
+
+    onNewListClick?.let {
+        items.add(
+            MenuFABItem(
+                label = "New List",
+                icon = androidx.compose.material.icons.Icons.Rounded.Nfc, // Placeholder icon
+                onClick = it,
+                testTag = "new_list",
             ),
         )
     }

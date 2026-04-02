@@ -689,13 +689,11 @@ fun MessageInput(
             }
         },
         trailingIcon = {
-            if (!(messageText.isEmpty() && isVoiceBurstEnabled)) {
-                IconButton(onClick = { if (canSend) onSendMessage() }, enabled = canSend) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = stringResource(Res.string.send),
-                    )
-                }
+            IconButton(onClick = { if (canSend) onSendMessage() }, enabled = canSend) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Send,
+                    contentDescription = stringResource(Res.string.send),
+                )
             }
         },
     )
