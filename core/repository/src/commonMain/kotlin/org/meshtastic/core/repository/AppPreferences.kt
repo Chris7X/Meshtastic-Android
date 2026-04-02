@@ -120,6 +120,16 @@ interface UiPrefs {
 
     fun setShowQuickChat(show: Boolean)
 
+    /** Whether the on-device Smart Reply feature is enabled by the user. Default: false. */
+    val smartReplyEnabled: StateFlow<Boolean>
+
+    fun setSmartReplyEnabled(enabled: Boolean)
+
+    /** Whether the "Excluded Modules" (experimental features) are unlocked. Default: false. */
+    val excludedModulesEnabled: StateFlow<Boolean>
+
+    fun setExcludedModulesEnabled(enabled: Boolean)
+
     fun shouldProvideNodeLocation(nodeNum: Int): StateFlow<Boolean>
 
     fun setShouldProvideNodeLocation(nodeNum: Int, provide: Boolean)

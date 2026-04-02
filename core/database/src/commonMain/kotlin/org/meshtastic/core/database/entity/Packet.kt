@@ -39,6 +39,7 @@ data class PacketEntity(
     suspend fun toMessage(getNode: suspend (userId: String?) -> Node) = with(packet) {
         val node = getNode(data.from)
         val isFromLocal = node.user.id == DataPacket.ID_LOCAL || (myNodeNum != 0 && node.num == myNodeNum)
+        val isVoiceBurst = port_num == VOICE_BURST_PORT_NUM
         Message(
             uuid = uuid,
             receivedTime = received_time,
@@ -60,6 +61,9 @@ data class PacketEntity(
             relays = data.relays,
             filtered = filtered,
             transportMechanism = data.transportMechanism,
+            dataType = port_num,
+            audioFilePath = if (isVoiceBurst) "voice_bursts/$uuid.c2" else null,
+            durationMs = if (isVoiceBurst) decodeVoiceBurstDurationMs(data.bytes) else 0,
         )
     }
 }
@@ -175,3 +179,27 @@ suspend fun ReactionEntity.toReaction(getNode: suspend (userId: String?) -> Node
 
 suspend fun List<ReactionEntity>.toReaction(getNode: suspend (userId: String?) -> Node?) =
     this.map { it.toReaction(getNode) }
+
+// ─── Voice Burst helpers ─────────────────────────────────────────────────────
+
+/**
+ * PortNum.PRIVATE_APP = 256, used as the provisional port number for Voice Burst.
+ * Kept as a raw constant to avoid a cross-module dependency on feature:voiceburst.
+ * Must stay in sync with VoiceBurstPayload.PORT_NUM.
+ */
+private const val VOICE_BURST_PORT_NUM = 256
+
+/**
+ * Decodes the `durationMs` field from a Voice Burst payload header.
+ *
+ * Header format (VoiceBurstPayload.encode):
+ *   byte[0] = version (1)
+ *   byte[1] = codecMode
+ *   byte[2..3] = durationMs as 2-byte big-endian unsigned short
+ *
+ * Returns 0 if the payload is null or shorter than the 4-byte header.
+ */
+private fun decodeVoiceBurstDurationMs(bytes: okio.ByteString?): Int {
+    if (bytes == null || bytes.size < 4) return 0
+    return (((bytes[2].toInt() and 0xFF) shl 8) or (bytes[3].toInt() and 0xFF))
+}

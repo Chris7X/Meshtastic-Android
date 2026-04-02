@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.DoDisturbOn
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.StarBorder
+import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -37,6 +38,7 @@ import org.meshtastic.core.model.Node
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.add_favorite
 import org.meshtastic.core.resources.ignore
+import org.meshtastic.core.resources.message
 import org.meshtastic.core.resources.mute_always
 import org.meshtastic.core.resources.remove
 import org.meshtastic.core.resources.remove_favorite
@@ -53,6 +55,7 @@ import org.meshtastic.core.ui.theme.StatusColors.StatusRed
 fun NodeContextMenu(
     expanded: Boolean,
     node: Node,
+    onMessage: () -> Unit,
     onFavorite: () -> Unit,
     onIgnore: () -> Unit,
     onMute: () -> Unit,
@@ -60,6 +63,7 @@ fun NodeContextMenu(
     onDismiss: () -> Unit,
 ) {
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+        MessageMenuItem(onMessage, onDismiss)
         FavoriteMenuItem(node, onFavorite, onDismiss)
         IgnoreMenuItem(node, onIgnore, onDismiss)
         if (node.capabilities.canMuteNode) {
@@ -67,6 +71,23 @@ fun NodeContextMenu(
         }
         RemoveMenuItem(node, onRemove, onDismiss)
     }
+}
+
+@Composable
+private fun MessageMenuItem(onMessage: () -> Unit, onDismiss: () -> Unit) {
+    DropdownMenuItem(
+        onClick = {
+            onMessage()
+            onDismiss()
+        },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.Message,
+                contentDescription = null,
+            )
+        },
+        text = { Text(stringResource(Res.string.message)) },
+    )
 }
 
 @Composable

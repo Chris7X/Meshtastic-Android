@@ -27,6 +27,8 @@ import androidx.compose.material.icons.rounded.AppSettingsAlt
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.Psychology
+import androidx.compose.material.icons.rounded.RecordVoiceOver
 import androidx.compose.material.icons.rounded.WavingHand
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,7 +51,10 @@ import org.meshtastic.core.resources.intro_show
 import org.meshtastic.core.resources.modules_already_unlocked
 import org.meshtastic.core.resources.modules_unlocked
 import org.meshtastic.core.resources.system_settings
+import org.meshtastic.core.resources.voice_burst_experimental
+import org.meshtastic.core.resources.smart_reply_experimental
 import org.meshtastic.core.ui.component.ListItem
+import org.meshtastic.core.ui.component.SwitchListItem
 import org.meshtastic.core.ui.theme.AppTheme
 import org.meshtastic.core.ui.util.showToast
 import kotlin.time.Duration.Companion.seconds
@@ -59,7 +64,11 @@ import kotlin.time.Duration.Companion.seconds
 fun AppInfoSection(
     appVersionName: String,
     excludedModulesUnlocked: Boolean,
-    onUnlockExcludedModules: () -> Unit,
+    voiceBurstEnabled: Boolean,
+    onToggleVoiceBurst: (Boolean) -> Unit,
+    smartReplyEnabled: Boolean,
+    onToggleSmartReply: (Boolean) -> Unit,
+    onUnlockModules: () -> Unit,
     onShowAppIntro: () -> Unit,
     onNavigateToAbout: () -> Unit,
 ) {
@@ -106,10 +115,26 @@ fun AppInfoSection(
             onNavigateToAbout()
         }
 
+        if (excludedModulesUnlocked) {
+            SwitchListItem(
+                text = stringResource(Res.string.voice_burst_experimental),
+                leadingIcon = Icons.Rounded.RecordVoiceOver,
+                checked = voiceBurstEnabled,
+                onClick = { onToggleVoiceBurst(!voiceBurstEnabled) },
+            )
+
+            SwitchListItem(
+                text = stringResource(Res.string.smart_reply_experimental),
+                leadingIcon = Icons.Rounded.Psychology,
+                checked = smartReplyEnabled,
+                onClick = { onToggleSmartReply(!smartReplyEnabled) },
+            )
+        }
+
         AppVersionButton(
             excludedModulesUnlocked = excludedModulesUnlocked,
             appVersionName = appVersionName,
-            onUnlockExcludedModules = onUnlockExcludedModules,
+            onUnlockExcludedModules = onUnlockModules,
         )
     }
 }
@@ -165,7 +190,11 @@ private fun AppInfoSectionPreview() {
         AppInfoSection(
             appVersionName = "2.5.0",
             excludedModulesUnlocked = false,
-            onUnlockExcludedModules = {},
+            voiceBurstEnabled = false,
+            onToggleVoiceBurst = {},
+            smartReplyEnabled = false,
+            onToggleSmartReply = {},
+            onUnlockModules = {},
             onShowAppIntro = {},
             onNavigateToAbout = {},
         )

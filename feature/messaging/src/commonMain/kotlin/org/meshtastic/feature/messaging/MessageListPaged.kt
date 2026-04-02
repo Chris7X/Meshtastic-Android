@@ -71,6 +71,10 @@ internal data class MessageListHandlers(
     val onDeleteMessages: (List<Long>) -> Unit,
     val onSendMessage: (String, String) -> Unit,
     val onReply: (Message?) -> Unit,
+    /** Called when the user taps the play button on a voice burst bubble. */
+    val onPlayVoiceBurst: (String) -> Unit = {},
+    /** StateFlow that tracks which audio file (relative path) is currently playing. */
+    val playingFilePathFlow: kotlinx.coroutines.flow.StateFlow<String?>? = null,
 )
 
 internal data class MessageListPagedState(
@@ -168,6 +172,8 @@ internal fun MessageListPaged(
         onShowReactions = { showReactionDialog = it },
         modifier = modifier,
         quickEmojis = quickEmojis,
+        onPlayVoiceBurst = handlers.onPlayVoiceBurst,
+        playingFilePathFlow = handlers.playingFilePathFlow,
     )
 }
 
@@ -185,6 +191,8 @@ private fun MessageListPagedContent(
     onShowReactions: (List<Reaction>) -> Unit,
     modifier: Modifier = Modifier,
     quickEmojis: List<String>,
+    onPlayVoiceBurst: (String) -> Unit = {},
+    playingFilePathFlow: kotlinx.coroutines.flow.StateFlow<String?>? = null,
 ) {
     // Calculate unread divider position using snapshot to avoid side-effects and improve performance
     // Optimized: Use full snapshot index to correctly match LazyColumn index range
@@ -255,6 +263,8 @@ private fun MessageListPagedContent(
                                 hasSamePrev = hasSamePrev,
                                 hasSameNext = hasSameNext,
                                 quickEmojis = quickEmojis,
+                                onPlayVoiceBurst = onPlayVoiceBurst,
+                                playingFilePathFlow = playingFilePathFlow,
                             )
                         }
                     } else {
@@ -274,6 +284,8 @@ private fun MessageListPagedContent(
                             hasSamePrev = hasSamePrev,
                             hasSameNext = hasSameNext,
                             quickEmojis = quickEmojis,
+                            onPlayVoiceBurst = onPlayVoiceBurst,
+                            playingFilePathFlow = playingFilePathFlow,
                         )
                     }
                 }
@@ -316,6 +328,8 @@ private fun RenderPagedChatMessageRow(
     hasSamePrev: Boolean,
     hasSameNext: Boolean,
     quickEmojis: List<String>,
+    onPlayVoiceBurst: (String) -> Unit = {},
+    playingFilePathFlow: kotlinx.coroutines.flow.StateFlow<String?>? = null,
 ) {
     val ourNode = state.ourNode ?: return
     val selected by
@@ -373,6 +387,8 @@ private fun RenderPagedChatMessageRow(
         hasSamePrev = hasSamePrev,
         hasSameNext = hasSameNext,
         quickEmojis = quickEmojis,
+        onPlayVoiceBurst = onPlayVoiceBurst,
+        playingFilePathFlow = playingFilePathFlow,
     )
 }
 

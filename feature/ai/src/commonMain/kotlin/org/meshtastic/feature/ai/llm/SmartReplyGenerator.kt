@@ -21,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.Clock
 
 /**
  * Use case for generating smart replies in messaging context.
@@ -56,7 +57,7 @@ class SmartReplyGenerator(
                     text = receivedMessage,
                     isFromMe = false,
                     senderName = senderName,
-                    timestamp = System.currentTimeMillis()
+                    timestamp = Clock.System.now().toEpochMilliseconds()
                 )
             )
             

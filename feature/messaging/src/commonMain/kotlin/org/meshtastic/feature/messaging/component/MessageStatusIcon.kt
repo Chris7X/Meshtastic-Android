@@ -24,6 +24,7 @@ import org.meshtastic.core.model.MessageStatus
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.message_delivery_status
 import org.meshtastic.core.ui.icon.Acknowledged
+import org.meshtastic.core.ui.icon.AcknowledgedTwoTone
 import org.meshtastic.core.ui.icon.CloudDone
 import org.meshtastic.core.ui.icon.CloudOffTwoTone
 import org.meshtastic.core.ui.icon.CloudSync
@@ -37,9 +38,9 @@ fun MessageStatusIcon(status: MessageStatus, modifier: Modifier = Modifier) {
         when (status) {
             MessageStatus.RECEIVED -> MeshtasticIcons.Acknowledged
             MessageStatus.QUEUED -> MeshtasticIcons.CloudSync
-            MessageStatus.DELIVERED -> MeshtasticIcons.CloudDone
+            MessageStatus.DELIVERED -> MeshtasticIcons.AcknowledgedTwoTone
             MessageStatus.SFPP_ROUTING -> MeshtasticIcons.CloudSync
-            MessageStatus.SFPP_CONFIRMED -> MeshtasticIcons.CloudDone
+            MessageStatus.SFPP_CONFIRMED -> MeshtasticIcons.AcknowledgedTwoTone
             MessageStatus.ENROUTE -> MeshtasticIcons.CloudTwoTone
             MessageStatus.ERROR -> MeshtasticIcons.CloudOffTwoTone
             else -> MeshtasticIcons.Warning

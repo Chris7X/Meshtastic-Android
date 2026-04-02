@@ -22,6 +22,7 @@ import androidx.navigation3.runtime.NavKey
 import kotlinx.coroutines.flow.Flow
 import org.koin.compose.viewmodel.koinViewModel
 import org.meshtastic.core.navigation.ChannelsRoutes
+import org.meshtastic.core.navigation.ContactsRoutes
 import org.meshtastic.core.navigation.NodesRoutes
 import org.meshtastic.core.ui.component.ScrollToTopEvent
 import org.meshtastic.feature.node.list.NodeListScreen
@@ -38,6 +39,7 @@ fun AdaptiveNodeListScreen(
     NodeListScreen(
         viewModel = nodeListViewModel,
         navigateToNodeDetails = { nodeId -> backStack.add(NodesRoutes.NodeDetail(nodeId)) },
+        onNavigateToMessaging = { hexId -> backStack.add(ContactsRoutes.Messages(hexId)) },
         onNavigateToChannels = { backStack.add(ChannelsRoutes.ChannelsGraph) },
         scrollToTopEvents = scrollToTopEvents,
         activeNodeId = null,

@@ -65,7 +65,10 @@ import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.a11y_message_from
 import org.meshtastic.core.resources.filter_message_label
 import org.meshtastic.core.resources.reply
+import kotlinx.coroutines.flow.StateFlow
 import org.meshtastic.core.ui.component.AutoLinkText
+import org.meshtastic.feature.messaging.component.VoiceBurstPlayer
+import org.meshtastic.feature.voiceburst.model.VoiceBurstPayload
 import org.meshtastic.core.ui.component.NodeChip
 import org.meshtastic.core.ui.component.Rssi
 import org.meshtastic.core.ui.component.Snr
@@ -102,6 +105,10 @@ fun MessageItem(
     onStatusClick: () -> Unit = {},
     hasSamePrev: Boolean = false,
     hasSameNext: Boolean = false,
+    /** Called when the user taps ▶ on a voice burst bubble. Receives the relative audio file path. */
+    onPlayVoiceBurst: (String) -> Unit = {},
+    /** Tracks which audio file path is currently playing; drives the ▶/■ icon state. */
+    playingFilePathFlow: StateFlow<String?>? = null,
 ) = Column(
     modifier =
     modifier
@@ -260,11 +267,23 @@ fun MessageItem(
             )
 
             Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)) {
-                AutoLinkText(
-                    text = message.text,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = cardColors.contentColor,
-                )
+                // Voice burst: show the audio player instead of a text bubble.
+                // For all other dataTypes (text, waypoint, …) fall through to AutoLinkText.
+                if (message.dataType == VoiceBurstPayload.PORT_NUM) {
+                    VoiceBurstPlayer(
+                        audioFilePath = message.audioFilePath,
+                        durationMs = message.durationMs,
+                        contentColor = cardColors.contentColor,
+                        onPlay = onPlayVoiceBurst,
+                        playingFilePathFlow = playingFilePathFlow,
+                    )
+                } else {
+                    AutoLinkText(
+                        text = message.text,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = cardColors.contentColor,
+                    )
+                }
 
                 Row(modifier = Modifier, verticalAlignment = Alignment.CenterVertically) {
                     if (!message.fromLocal) {

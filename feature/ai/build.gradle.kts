@@ -49,13 +49,11 @@ kotlin {
             implementation(projects.core.di)
 
             implementation(libs.kotlinx.collections.immutable)
-            implementation(libs.jetbrains.navigation3.runtime)
-            implementation(libs.jetbrains.navigation3.ui)
         }
 
         androidMain.dependencies {
-            // LiteRT-LM SDK for on-device LLM inference
-            implementation(libs.google.litert.lm)
+            // LiteRT (former TFLite) SDK for on-device ML/AI inference
+            implementation(libs.google.litert.runtime)
         }
 
         androidUnitTest.dependencies {

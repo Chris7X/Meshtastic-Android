@@ -233,10 +233,17 @@ fun SettingsScreen(
                     onExportData = { settingsViewModel.saveDataCsv(it.toMeshtasticUri()) },
                 )
 
+                val voiceBurstEnabled by settingsViewModel.voiceBurstEnabled.collectAsStateWithLifecycle()
+                val smartReplyEnabled by settingsViewModel.smartReplyEnabled.collectAsStateWithLifecycle()
+
                 AppInfoSection(
                     appVersionName = settingsViewModel.appVersionName,
                     excludedModulesUnlocked = excludedModulesUnlocked,
-                    onUnlockExcludedModules = { settingsViewModel.unlockExcludedModules() },
+                    voiceBurstEnabled = voiceBurstEnabled,
+                    onToggleVoiceBurst = { settingsViewModel.setVoiceBurstEnabled(it) },
+                    smartReplyEnabled = smartReplyEnabled,
+                    onToggleSmartReply = { settingsViewModel.setSmartReplyEnabled(it) },
+                    onUnlockModules = { settingsViewModel.unlockExcludedModules() },
                     onShowAppIntro = { settingsViewModel.showAppIntro() },
                     onNavigateToAbout = { onNavigate(SettingsRoutes.About) },
                 )

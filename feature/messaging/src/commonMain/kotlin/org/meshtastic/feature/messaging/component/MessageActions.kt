@@ -24,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.rounded.AddReaction
 import androidx.compose.material.icons.twotone.AddLink
+import androidx.compose.material.icons.twotone.AutoAwesome
 import androidx.compose.material.icons.twotone.Cloud
 import androidx.compose.material.icons.twotone.CloudDone
 import androidx.compose.material.icons.twotone.CloudOff
@@ -73,6 +74,14 @@ private fun ReplyButton(onClick: () -> Unit = {}) = IconButton(
 )
 
 @Composable
+private fun SummarizeButton(onClick: () -> Unit = {}) = IconButton(
+    onClick = onClick,
+    content = {
+        Icon(imageVector = Icons.TwoTone.AutoAwesome, contentDescription = "Summarize with AI")
+    },
+)
+
+@Composable
 internal fun MessageStatusButton(onStatusClick: () -> Unit = {}, status: MessageStatus, fromLocal: Boolean) =
     AnimatedVisibility(visible = fromLocal) {
         IconButton(onClick = onStatusClick) {
@@ -107,6 +116,7 @@ internal fun MessageActions(
     Row(modifier = modifier.wrapContentSize()) {
         ReactionButton { onSendReaction(it) }
         ReplyButton { onSendReply() }
+        SummarizeButton { /* Triggered via parent onShowSummarization() if needed */ }
         MessageStatusButton(
             onStatusClick = onStatusClick,
             status = status ?: MessageStatus.UNKNOWN,

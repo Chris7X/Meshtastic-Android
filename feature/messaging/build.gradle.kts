@@ -41,6 +41,7 @@ kotlin {
             implementation(projects.core.resources)
             implementation(projects.core.service)
             implementation(projects.core.ui)
+            implementation(projects.feature.voiceburst)
 
             implementation(libs.jetbrains.navigation3.ui)
             implementation(libs.jetbrains.navigationevent.compose)

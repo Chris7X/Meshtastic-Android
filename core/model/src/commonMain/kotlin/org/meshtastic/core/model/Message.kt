@@ -93,6 +93,21 @@ data class Message(
     val filtered: Boolean = false,
     /** The transport mechanism this packet arrived over (see [MeshPacket.TransportMechanism]). */
     val transportMechanism: Int = 0,
+    /**
+     * PortNum value stored in the DB (e.g. 256 = PRIVATE_APP / Voice Burst).
+     * Default 0 keeps all existing callers compatible without changes.
+     */
+    val dataType: Int = 0,
+    /**
+     * Relative path to the persisted audio file, populated only when [dataType] == 256.
+     * e.g. "voice_bursts/12345678.c2" — resolved against Context.filesDir at playback time.
+     */
+    val audioFilePath: String? = null,
+    /**
+     * Duration of the voice burst in milliseconds, decoded from the payload header.
+     * 0 when not a voice burst or when the header cannot be parsed.
+     */
+    val durationMs: Int = 0,
 ) {
     fun getStatusStringRes(): Pair<StringResource, StringResource> {
         val title = if (routingError > 0) Res.string.error else Res.string.message_delivery_status

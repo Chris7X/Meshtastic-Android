@@ -68,6 +68,7 @@ import org.meshtastic.feature.node.component.NodeItem
 @Composable
 fun NodeListScreen(
     navigateToNodeDetails: (Int) -> Unit,
+    onNavigateToMessaging: (String) -> Unit,
     viewModel: NodeListViewModel,
     onNavigateToChannels: () -> Unit = {},
     scrollToTopEvents: Flow<ScrollToTopEvent>? = null,
@@ -194,6 +195,7 @@ fun NodeListScreen(
                             NodeContextMenu(
                                 expanded = expanded,
                                 node = node,
+                                onMessage = { onNavigateToMessaging(node.user.id) },
                                 onFavorite = { viewModel.favoriteNode(node) },
                                 onIgnore = { viewModel.ignoreNode(node) },
                                 onMute = { viewModel.muteNode(node) },

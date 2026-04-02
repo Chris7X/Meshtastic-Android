@@ -44,6 +44,7 @@ kotlin {
             implementation(projects.core.resources)
             implementation(projects.core.ui)
             implementation(projects.core.di)
+            implementation(projects.feature.voiceburst)
 
             implementation(libs.kotlinx.collections.immutable)
             implementation(libs.aboutlibraries.compose.m3)

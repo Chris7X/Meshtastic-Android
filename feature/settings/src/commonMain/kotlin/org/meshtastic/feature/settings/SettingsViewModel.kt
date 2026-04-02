@@ -51,6 +51,7 @@ import org.meshtastic.core.repository.NotificationPrefs
 import org.meshtastic.core.repository.RadioConfigRepository
 import org.meshtastic.core.repository.UiPrefs
 import org.meshtastic.core.ui.viewmodel.stateInWhileSubscribed
+import org.meshtastic.feature.voiceburst.repository.VoiceBurstRepository
 import org.meshtastic.proto.LocalConfig
 
 @KoinViewModel
@@ -60,6 +61,7 @@ class SettingsViewModel(
     private val radioController: RadioController,
     private val nodeRepository: NodeRepository,
     private val uiPrefs: UiPrefs,
+    private val voiceBurstRepository: VoiceBurstRepository,
     private val buildConfigProvider: BuildConfigProvider,
     private val databaseManager: DatabaseManager,
     private val meshLogPrefs: MeshLogPrefs,
@@ -109,8 +111,11 @@ class SettingsViewModel(
         meshLocationUseCase.stopProvidingLocation()
     }
 
-    private val _excludedModulesUnlocked = MutableStateFlow(false)
-    val excludedModulesUnlocked: StateFlow<Boolean> = _excludedModulesUnlocked.asStateFlow()
+    val excludedModulesUnlocked: StateFlow<Boolean> = uiPrefs.excludedModulesEnabled
+
+    fun unlockExcludedModules() {
+        uiPrefs.setExcludedModulesEnabled(true)
+    }
 
     val appVersionName
         get() = buildConfigProvider.versionName
@@ -169,8 +174,30 @@ class SettingsViewModel(
         setAppIntroCompletedUseCase(false)
     }
 
-    fun unlockExcludedModules() {
-        _excludedModulesUnlocked.update { true }
+    // -------------------------------------------------------------------------
+    // Epic A — Voice Burst experimental feature flag
+    // -------------------------------------------------------------------------
+
+    /** Current state of the Voice Burst feature flag. Default: false (OFF). */
+    val voiceBurstEnabled: StateFlow<Boolean> =
+        voiceBurstRepository.isFeatureEnabled.stateInWhileSubscribed(initialValue = false)
+
+    /** Enables or disables Voice Burst experimental and persists the choice. */
+    fun setVoiceBurstEnabled(enabled: Boolean) {
+        viewModelScope.launch { voiceBurstRepository.setFeatureEnabled(enabled) }
+    }
+
+    // -------------------------------------------------------------------------
+    // Epic C — AI Smart Reply feature flag
+    // -------------------------------------------------------------------------
+
+    /** Current state of the Smart Reply feature flag. Default: false (OFF). */
+    val smartReplyEnabled: StateFlow<Boolean> =
+        uiPrefs.smartReplyEnabled.stateInWhileSubscribed(initialValue = false)
+
+    /** Enables or disables Smart Reply and persists the choice. */
+    fun setSmartReplyEnabled(enabled: Boolean) {
+        uiPrefs.setSmartReplyEnabled(enabled)
     }
 
     /**

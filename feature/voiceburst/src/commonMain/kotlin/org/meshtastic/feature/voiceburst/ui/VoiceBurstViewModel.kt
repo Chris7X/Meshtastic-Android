@@ -44,8 +44,8 @@ private const val TAG = "VoiceBurstViewModel"
  * ViewModel handling the lifecycle and orchestration of Voice Burst messaging.
  *
  * Full pipeline:
- *   MIC → [AudioRecorder] → PCM → [Codec2Encoder.encode] → bytes → [VoiceBurstRepository.sendBurst]
- *   RADIO → [VoiceBurstRepository.incomingBursts] → bytes → [Codec2Encoder.decode] → PCM → [AudioPlayer]
+ *   MIC â†’ [AudioRecorder] â†’ PCM â†’ [Codec2Encoder.encode] â†’ bytes â†’ [VoiceBurstRepository.sendBurst]
+ *   RADIO â†’ [VoiceBurstRepository.incomingBursts] â†’ bytes â†’ [Codec2Encoder.decode] â†’ PCM â†’ [AudioPlayer]
  *
  * Rate limiting is enforced: minimum [RATE_LIMIT_MS] between consecutive bursts.
  *
@@ -99,14 +99,14 @@ class VoiceBurstViewModel(
         // Listen for incoming radio bursts and trigger automatic playback.
         repository.incomingBursts
             .onEach { payload -> onBurstReceived(payload) }
-            .catch { e -> Logger.w(TAG) { "Incoming bursts flow error: ${e.message}" } }
+            .catch { e -> Logger.w(tag = TAG) { "Incoming bursts flow error: ${e.message}" } }
             .launchIn(viewModelScope)
     }
 
-    // ─── Receiver-side logic ────────────────────────────────────────────────
+    // â”€â”€â”€ Receiver-side logic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private fun onBurstReceived(payload: VoiceBurstPayload) {
-        Logger.i(TAG) {
+        Logger.i(tag = TAG) {
             "Burst received from ${payload.senderNodeId}: " +
                 "${payload.durationMs}ms, ${payload.audioData.size} bytes"
         }
@@ -114,12 +114,12 @@ class VoiceBurstViewModel(
 
         val pcmData = encoder.decode(payload.audioData)
         if (pcmData == null || pcmData.isEmpty()) {
-            Logger.e(TAG) { "Decoding failed — no PCM samples to play" }
+            Logger.e(tag = TAG) { "Decoding failed â€” no PCM samples to play" }
             _state.update { VoiceBurstState.Idle }
             return
         }
 
-        Logger.d(TAG) { "Starting playback: ${pcmData.size} samples @ ${SAMPLE_RATE_HZ}Hz" }
+        Logger.d(tag = TAG) { "Starting playback: ${pcmData.size} samples @ ${SAMPLE_RATE_HZ}Hz" }
         // Empty filePath indicates autoplay (not triggered by a specific UI bubble).
         audioPlayer.play(pcmData, filePath = "") {
             if (_state.value is VoiceBurstState.Received) {
@@ -128,7 +128,7 @@ class VoiceBurstViewModel(
         }
     }
 
-    // ─── Sender-side (PTT) recording ──────────────────────────────────────
+    // â”€â”€â”€ Sender-side (PTT) recording â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /**
      * Initiates microphone recording if the state machine is [Idle].
@@ -143,7 +143,7 @@ class VoiceBurstViewModel(
         val now = Clock.System.now().toEpochMilliseconds()
         val remaining = RATE_LIMIT_MS - (now - lastSentTimestamp)
         if (remaining > 0) {
-            Logger.w(TAG) { "Rate limit active: waiting ${remaining / 1000}s" }
+            Logger.w(tag = TAG) { "Rate limit active: waiting ${remaining / 1000}s" }
             _state.update { VoiceBurstState.Error(VoiceBurstError.RATE_LIMITED) }
             viewModelScope.launch {
                 delay(remaining)
@@ -154,7 +154,7 @@ class VoiceBurstViewModel(
             return
         }
 
-        Logger.d(TAG) { "Starting PTT recording for $resolvedNodeId (dest=$destNodeId)" }
+        Logger.d(tag = TAG) { "Starting PTT recording for $resolvedNodeId (dest=$destNodeId)" }
         _state.update { VoiceBurstState.Recording(elapsedMs = 0L) }
 
         // Start UI timer: updates the elapsed time for the PTT progress indicator.
@@ -176,13 +176,13 @@ class VoiceBurstViewModel(
             onComplete = { pcmData, durationMs ->
                 uiTimerJob?.cancel()
                 uiTimerJob = null
-                Logger.d(TAG) { "Recording finished: ${pcmData.size} samples, ${durationMs}ms" }
+                Logger.d(tag = TAG) { "Recording finished: ${pcmData.size} samples, ${durationMs}ms" }
                 onRecordingComplete(pcmData, durationMs)
             },
             onError = { error ->
                 uiTimerJob?.cancel()
                 uiTimerJob = null
-                Logger.e(TAG) { "Hardware recording error: ${error.message}" }
+                Logger.e(tag = TAG) { "Hardware recording error: ${error.message}" }
                 _state.update { VoiceBurstState.Error(VoiceBurstError.ENCODING_FAILED) }
             },
             maxDurationMs = MAX_DURATION_MS,
@@ -195,13 +195,13 @@ class VoiceBurstViewModel(
      */
     fun stopRecording() {
         if (_state.value !is VoiceBurstState.Recording) return
-        Logger.d(TAG) { "Manual recording stop triggered" }
+        Logger.d(tag = TAG) { "Manual recording stop triggered" }
         uiTimerJob?.cancel()
         uiTimerJob = null
         audioRecorder.stopRecording()
     }
 
-    // ─── Encoding and Dispatch ──────────────────────────────────────────────
+    // â”€â”€â”€ Encoding and Dispatch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     internal fun onRecordingComplete(pcmData: ShortArray, durationMs: Int) {
         _state.update { VoiceBurstState.Encoding }
@@ -209,15 +209,15 @@ class VoiceBurstViewModel(
         viewModelScope.launch {
             val audioBytes = encoder.encode(pcmData)
             if (audioBytes == null) {
-                Logger.e(TAG) { "Codec2 encoding failed (check JNI)" }
+                Logger.e(tag = TAG) { "Codec2 encoding failed (check JNI)" }
                 _state.update { VoiceBurstState.Error(VoiceBurstError.ENCODING_FAILED) }
                 return@launch
             }
 
             if (encoder.isStub) {
-                Logger.w(TAG) { "Running with Codec2 stub — transmission will not be intelligible" }
+                Logger.w(tag = TAG) { "Running with Codec2 stub â€” transmission will not be intelligible" }
             } else {
-                Logger.i(TAG) { "Enc JNI Success: ${pcmData.size} samples → ${audioBytes.size} bytes" }
+                Logger.i(tag = TAG) { "Enc JNI Success: ${pcmData.size} samples â†’ ${audioBytes.size} bytes" }
             }
 
             val payload = VoiceBurstPayload(
@@ -230,12 +230,12 @@ class VoiceBurstViewModel(
 
             if (success) {
                 lastSentTimestamp = Clock.System.now().toEpochMilliseconds()
-                Logger.i(TAG) { "Voice Burst broadcasted: ${audioBytes.size} bytes, ${durationMs}ms" }
+                Logger.i(tag = TAG) { "Voice Burst broadcasted: ${audioBytes.size} bytes, ${durationMs}ms" }
                 _state.update { VoiceBurstState.Sent }
                 delay(SENT_DISPLAY_MS)
                 _state.update { VoiceBurstState.Idle }
             } else {
-                Logger.e(TAG) { "Failed to send burst to $destNodeId" }
+                Logger.e(tag = TAG) { "Failed to send burst to $destNodeId" }
                 _state.update { VoiceBurstState.Error(VoiceBurstError.SEND_FAILED) }
             }
         }
@@ -264,15 +264,15 @@ class VoiceBurstViewModel(
         viewModelScope.launch {
             val codec2Bytes = repository.readAudioFile(relativePath)
             if (codec2Bytes == null || codec2Bytes.isEmpty()) {
-                Logger.e(TAG) { "Audio file missing: $relativePath" }
+                Logger.e(tag = TAG) { "Audio file missing: $relativePath" }
                 return@launch
             }
             val pcmData = encoder.decode(codec2Bytes)
             if (pcmData == null || pcmData.isEmpty()) {
-                Logger.e(TAG) { "Failed to decode audio file: $relativePath" }
+                Logger.e(tag = TAG) { "Failed to decode audio file: $relativePath" }
                 return@launch
             }
-            Logger.d(TAG) { "Streaming from file: $relativePath (${pcmData.size} samples)" }
+            Logger.d(tag = TAG) { "Streaming from file: $relativePath (${pcmData.size} samples)" }
             audioPlayer.play(pcmData, filePath = relativePath)
         }
     }

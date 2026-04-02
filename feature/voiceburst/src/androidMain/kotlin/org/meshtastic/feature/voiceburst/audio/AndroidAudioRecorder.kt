@@ -36,7 +36,7 @@ private const val TAG = "AndroidAudioRecorder"
  *   - Channel:  CHANNEL_IN_MONO
  *   - Encoding: PCM_16BIT
  *
- * minSdk: 26 (verified in config.properties) — AudioRecord available since API 3. ✅
+ * minSdk: 26 (verified in config.properties) Ã¢â‚¬â€ AudioRecord available since API 3. Ã¢Å“â€¦
  *
  * PREREQUISITE: the caller must have obtained android.permission.RECORD_AUDIO
  * before invoking [startRecording].
@@ -57,7 +57,7 @@ class AndroidAudioRecorder(
         maxDurationMs: Int,
     ) {
         if (isRecording) {
-            Logger.w(TAG) { "startRecording called while already recording — ignored" }
+            Logger.w(tag = TAG) { "startRecording called while already recording Ã¢â‚¬â€ ignored" }
             return
         }
 
@@ -108,13 +108,13 @@ class AndroidAudioRecorder(
 
             try {
                 record.startRecording()
-                Logger.d(TAG) { "Recording started (max ${maxDurationMs}ms, ${sampleRate}Hz mono PCM16)" }
+                Logger.d(tag = TAG) { "Recording started (max ${maxDurationMs}ms, ${sampleRate}Hz mono PCM16)" }
 
                 while (samplesRead < pcmBuffer.size && isRecording) {
                     val chunkSize = minOf(minBufferSize / 2, pcmBuffer.size - samplesRead)
                     val read = record.read(pcmBuffer, samplesRead, chunkSize)
                     if (read < 0) {
-                        Logger.e(TAG) { "AudioRecord.read error: $read" }
+                        Logger.e(tag = TAG) { "AudioRecord.read error: $read" }
                         break
                     }
                     samplesRead += read
@@ -123,10 +123,10 @@ class AndroidAudioRecorder(
                 val durationMs = (System.currentTimeMillis() - startTime).toInt()
                     .coerceAtMost(maxDurationMs)
 
-                Logger.d(TAG) { "Recording complete: $samplesRead samples, ${durationMs}ms" }
+                Logger.d(tag = TAG) { "Recording complete: $samplesRead samples, ${durationMs}ms" }
                 onComplete(pcmBuffer.copyOf(samplesRead), durationMs)
             } catch (e: Exception) {
-                Logger.e(TAG, e) { "Error during recording" }
+                Logger.e(e, tag = TAG) { "Error during recording" }
                 onError(e)
             } finally {
                 record.stop()
@@ -138,8 +138,8 @@ class AndroidAudioRecorder(
 
     override fun stopRecording() {
         if (!isRecording) return
-        Logger.d(TAG) { "Early stop recording" }
-        // Stop AudioRecord — the loop in startRecording will terminate naturally
+        Logger.d(tag = TAG) { "Early stop recording" }
+        // Stop AudioRecord Ã¢â‚¬â€ the loop in startRecording will terminate naturally
         audioRecord?.stop()
         recordingJob?.cancel()
     }

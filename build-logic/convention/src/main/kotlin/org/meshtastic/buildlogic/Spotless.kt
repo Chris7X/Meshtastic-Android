@@ -23,7 +23,7 @@ import org.gradle.api.Project
 internal fun Project.configureSpotless(extension: SpotlessExtension) {
     val ktlintVersion = libs.version("ktlint")
     extension.apply {
-        ratchetFrom("origin/main")
+        // ratchetFrom("origin/main")
         kotlin {
             target("src/*/kotlin/**/*.kt", "src/*/java/**/*.kt")
             targetExclude("**/build/**/*.kt")

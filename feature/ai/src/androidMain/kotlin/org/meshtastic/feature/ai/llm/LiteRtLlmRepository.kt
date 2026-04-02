@@ -18,6 +18,7 @@
 package org.meshtastic.feature.ai.llm
 
 import android.content.Context
+import kotlin.random.Random
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
@@ -50,7 +51,7 @@ class LiteRtLlmRepository(
         val lower = message.lowercase().trim()
         // Deterministic seed: same message -> same 3 replies in the session,
         // different messages -> different order from pool of 6 -> perceived variety.
-        val rng = java.util.Random(lower.hashCode().toLong())
+        val rng = Random(lower.hashCode().toLong())
 
         val pool: List<String> = when {
             lower.containsAny("aiuto", "help", "sos", "emergenza", "emergency",

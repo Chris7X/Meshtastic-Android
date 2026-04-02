@@ -1323,4 +1323,50 @@
     <string name="files_available">Files available (%1$d):</string>
     <string name="file_entry">- %1$s (%2$d bytes)</string>
     <string name="no_files_manifested">No files manifested.</string>
+    <!-- Voice Burst -->
+    <string name="voice_burst_title">Voice Burst</string>
+    <string name="voice_burst_record">Record Voice Burst</string>
+    <string name="voice_burst_recording">Recording %1$.1fs — tap to send</string>
+    <string name="voice_burst_encoding">Encoding in progress</string>
+    <string name="voice_burst_sending">Sending in progress</string>
+    <string name="voice_burst_sent">Sent ✓</string>
+    <string name="voice_burst_error">Error — tap to retry</string>
+    <string name="voice_burst_received">Burst received</string>
+    <string name="voice_burst_unsupported">Not supported</string>
+    <string name="voice_burst_early_stop">Early stop recording</string>
+
+    <!-- Achievements -->
+    <string name="achievement_title_screen">Meshtastic Achievements</string>
+    <string name="achievement_unlocked_single">New achievement unlocked!</string>
+    <string name="achievement_unlocked_multiple">%1$d new achievements unlocked!</string>
+    <string name="achievement_unlocked_at">✓ Unlocked on %1$s</string>
+
+    <!-- Achievement Names -->
+    <string name="achievement_name_first_node">First node connected</string>
+    <string name="achievement_name_first_message_sent">First message sent</string>
+    <string name="achievement_name_first_dm_received">First message received</string>
+    <string name="achievement_name_ten_nodes">10 nodes discovered</string>
+    <string name="achievement_name_traceroute">Traceroute completed</string>
+    <string name="achievement_name_profile_exported">Profile exported</string>
+    <string name="achievement_name_firmware_updated">Firmware updated</string>
+    <string name="achievement_name_node_7days">Node active 7 days</string>
+    <string name="achievement_name_telemetry_received">Telemetry received</string>
+    <string name="achievement_name_sensor_connected">Environmental sensor detected</string>
+
+    <!-- Achievement Descriptions -->
+    <string name="achievement_desc_first_node">Connect a Meshtastic node via Bluetooth.</string>
+    <string name="achievement_desc_first_message_sent">Send a message on the mesh network.</string>
+    <string name="achievement_desc_first_dm_received">Receive a direct message from another node.</string>
+    <string name="achievement_desc_ten_nodes">Reach 10 distinct nodes in the local database.</string>
+    <string name="achievement_desc_traceroute">Run a traceroute to a remote node.</string>
+    <string name="achievement_desc_profile_exported">Export your node profile via QR or file.</string>
+    <string name="achievement_desc_firmware_updated">Apply a firmware update to the connected node.</string>
+    <string name="achievement_desc_node_7days">Keep the node active for 7 continuous days.</string>
+    <string name="achievement_desc_telemetry_received">Receive device telemetry data from a remote node.</string>
+    <string name="achievement_desc_sensor_connected">Detect a node with an active environmental sensor.</string>
+    <string name="voice_burst_player_play">Play Voice Burst</string>
+    <string name="voice_burst_player_stop">Stop Voice Burst</string>
+    <string name="voice_burst_not_available">Audio not available</string>
+    <string name="voice_burst_experimental">Voice Burst (Experimental)</string>
+    <string name="smart_reply_experimental">Smart Reply (Experimental)</string>
 </resources>

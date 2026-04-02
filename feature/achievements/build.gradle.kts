@@ -46,7 +46,6 @@ kotlin {
             implementation(projects.core.di)
 
             implementation(libs.kotlinx.collections.immutable)
-            implementation(libs.jetbrains.navigation3.runtime)
             implementation(libs.jetbrains.navigation3.ui)
         }
 

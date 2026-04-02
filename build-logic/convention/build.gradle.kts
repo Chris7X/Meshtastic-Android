@@ -69,7 +69,7 @@ tasks {
 }
 
 spotless {
-    ratchetFrom("origin/main")
+    ratchetFrom("upstream/main")
     kotlin {
         target("src/*/kotlin/**/*.kt", "src/*/java/**/*.kt")
         targetExclude("**/build/**/*.kt")

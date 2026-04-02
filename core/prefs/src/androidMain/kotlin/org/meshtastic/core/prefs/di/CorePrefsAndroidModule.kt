@@ -129,4 +129,11 @@ class CorePrefsAndroidModule {
         scope = scope,
         produceFile = { context.preferencesDataStoreFile("filter_ds") },
     )
+
+    @Single
+    @Named("ExperimentalDataStore")
+    fun provideExperimentalDataStore(context: Context): DataStore<Preferences> = PreferenceDataStoreFactory.create(
+        scope = scope,
+        produceFile = { context.preferencesDataStoreFile("experimental_ds") },
+    )
 }

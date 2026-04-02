@@ -61,7 +61,7 @@ private const val TAG = "AndroidVoiceBurstRepository"
  * [RadioController.sendMessage] hands the packet to the mesh service, which assigns
  * the real mesh-layer packet ID and updates [DataPacket.id] in-place before returning.
  * The audio file must therefore be saved AFTER [RadioController.sendMessage] returns,
- * using the now-populated [DataPacket.id] as the file name — matching the convention
+ * using the now-populated [DataPacket.id] as the file name Ã¢â‚¬â€ matching the convention
  * used on the receive side in [processIncomingBurst].
  *
  * If the radio is not connected at send time, the packet is queued with id = 0.
@@ -84,7 +84,7 @@ class AndroidVoiceBurstRepository(
         File(context.filesDir, "voice_bursts").also { it.mkdirs() }
     }
 
-    // ─── Feature flag ─────────────────────────────────────────────────────────
+    // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Feature flag Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
     private val featureEnabledFlow = dataStore.data
         .map { prefs -> prefs[KEY_FEATURE_ENABLED] ?: false }
@@ -98,10 +98,10 @@ class AndroidVoiceBurstRepository(
 
     override suspend fun setFeatureEnabled(enabled: Boolean) {
         dataStore.edit { prefs -> prefs[KEY_FEATURE_ENABLED] = enabled }
-        Logger.i(TAG) { "Voice Burst feature: ${if (enabled) "enabled" else "disabled"}" }
+        Logger.i(tag = TAG) { "Voice Burst feature: ${if (enabled) "enabled" else "disabled"}" }
     }
 
-    // ─── Send ─────────────────────────────────────────────────────────────────
+    // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Send Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
     override suspend fun sendBurst(payload: VoiceBurstPayload, contactKey: String): Boolean {
         val channelDigit = contactKey.firstOrNull()?.digitToIntOrNull()
@@ -121,7 +121,7 @@ class AndroidVoiceBurstRepository(
                 wantAck = true,
                 status = MessageStatus.ENROUTE,
             )
-            // packet.id == 0 here — the radio service has not assigned an ID yet.
+            // packet.id == 0 here Ã¢â‚¬â€ the radio service has not assigned an ID yet.
 
             // Step 1: persist to DB so the chat bubble appears immediately.
             val uuid = packetRepository.savePacket(
@@ -135,20 +135,20 @@ class AndroidVoiceBurstRepository(
             // Step 2: hand the packet to the radio.
             radioController.sendMessage(packet)
 
-            Logger.i(TAG) { "Burst sent to $destNodeId: ${payload.audioData.size} audio bytes, uuid=$uuid, packetId=${packet.id}" }
+            Logger.i(tag = TAG) { "Burst sent to $destNodeId: ${payload.audioData.size} audio bytes, uuid=$uuid, packetId=${packet.id}" }
 
             // Step 3: save the audio file for sender-side replay using the stable DB uuid.
             saveAudioFile(uuid.toString(), payload.audioData)
-            Logger.d(TAG) { "Sender audio saved: voice_bursts/$uuid.c2" }
+            Logger.d(tag = TAG) { "Sender audio saved: voice_bursts/$uuid.c2" }
 
             true
         } catch (e: Exception) {
-            Logger.e(TAG, e) { "Error sending burst to $destNodeId (contactKey=$contactKey)" }
+            Logger.e(e, tag = TAG) { "Error sending burst to $destNodeId (contactKey=$contactKey)" }
             false
         }
     }
 
-    // ─── Receive ────────────────────────────────────────────────────────────
+    // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Receive Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
     private val _incomingBursts = MutableSharedFlow<VoiceBurstPayload>(replay = 0, extraBufferCapacity = 8)
     override val incomingBursts: Flow<VoiceBurstPayload> = _incomingBursts
@@ -166,11 +166,11 @@ class AndroidVoiceBurstRepository(
 
         val payload = VoiceBurstPayload.decode(payloadBytes)
         if (payload == null) {
-            Logger.w(TAG) { "Invalid payload from ${packet.from} (${payloadBytes.size} bytes)" }
+            Logger.w(tag = TAG) { "Invalid payload from ${packet.from} (${payloadBytes.size} bytes)" }
             return
         }
 
-        Logger.i(TAG) { "Burst received from ${packet.from}: ${payload.durationMs}ms, ${payload.audioData.size} bytes" }
+        Logger.i(tag = TAG) { "Burst received from ${packet.from}: ${payload.durationMs}ms, ${payload.audioData.size} bytes" }
 
         val ourNode = nodeRepository.ourNodeInfo.value
         val myNodeNum = ourNode?.num ?: 0
@@ -201,7 +201,7 @@ class AndroidVoiceBurstRepository(
         try {
             // Deduplicate: ignore packets we have already processed.
             if (packetRepository.findPacketsWithId(packet.id).isNotEmpty()) {
-                Logger.d(TAG) { "Duplicate burst ignored: packetId=${packet.id}" }
+                Logger.d(tag = TAG) { "Duplicate burst ignored: packetId=${packet.id}" }
                 return
             }
 
@@ -216,17 +216,17 @@ class AndroidVoiceBurstRepository(
 
             // Save audio to disk using the stable DB uuid as the file name.
             saveAudioFile(uuid.toString(), payload.audioData)
-            Logger.i(TAG) { "Burst saved: contactKey=$contactKey file=voice_bursts/$uuid.c2" }
+            Logger.i(tag = TAG) { "Burst saved: contactKey=$contactKey file=voice_bursts/$uuid.c2" }
 
         } catch (e: Exception) {
-            Logger.e(TAG, e) { "Error saving burst from ${packet.from}" }
+            Logger.e(e, tag = TAG) { "Error saving burst from ${packet.from}" }
         }
 
         // Emit for immediate autoplay on arrival.
         _incomingBursts.tryEmit(payload.copy(senderNodeId = fromId))
     }
 
-    // ─── Audio file I/O ───────────────────────────────────────────────────────
+    // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Audio file I/O Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
     /**
      * Saves the compressed Codec2 bytes to a .c2 file named after [identifier].
@@ -238,9 +238,9 @@ class AndroidVoiceBurstRepository(
         try {
             val file = File(voiceBurstsDir, "$identifier.c2")
             file.writeBytes(audioData)
-            Logger.d(TAG) { "Audio saved: ${file.absolutePath} (${audioData.size} bytes)" }
+            Logger.d(tag = TAG) { "Audio saved: ${file.absolutePath} (${audioData.size} bytes)" }
         } catch (e: Exception) {
-            Logger.e(TAG, e) { "Error writing audio file for identifier=$identifier" }
+            Logger.e(e, tag = TAG) { "Error writing audio file for identifier=$identifier" }
         }
     }
 
@@ -256,7 +256,7 @@ class AndroidVoiceBurstRepository(
             val file = File(context.filesDir, relativePath)
             if (file.exists()) file.readBytes() else null
         } catch (e: Exception) {
-            Logger.e(TAG, e) { "Error reading audio file: $relativePath" }
+            Logger.e(e, tag = TAG) { "Error reading audio file: $relativePath" }
             null
         }
     }

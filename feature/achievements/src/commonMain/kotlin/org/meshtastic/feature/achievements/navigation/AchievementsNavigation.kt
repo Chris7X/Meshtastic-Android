@@ -18,22 +18,26 @@
 package org.meshtastic.feature.achievements.navigation
 
 import androidx.navigation3.runtime.EntryProviderScope
+import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import org.koin.compose.viewmodel.koinViewModel
 import org.meshtastic.core.navigation.Route
 import org.meshtastic.feature.achievements.ui.AchievementsScreen
 
 /**
- * Adds the Achievements route to the nav graph.
+ * Adds the Achievements route to the host navigation graph.
  *
- * Hook into settingsGraph() in SettingsNavigation.kt:
- *   achievementsGraph()
+ * Follows the same pattern as settingsGraph(), firmwareGraph() etc.
+ * The [backStack] parameter is used to enable back-navigation from the screen.
  *
- * And add an entry in SettingsScreen that navigates to AchievementsRoutes.Achievements.
+ * Registered in app/Main.kt alongside the other feature graphs.
  */
-fun EntryProviderScope<NavKey>.achievementsGraph() {
+fun EntryProviderScope<NavKey>.achievementsGraph(backStack: NavBackStack<NavKey>) {
     entry<AchievementsRoutes.Achievements> {
-        AchievementsScreen(viewModel = koinViewModel())
+        AchievementsScreen(
+            viewModel = koinViewModel(),
+            onBack = { backStack.removeLastOrNull() },
+        )
     }
 }
 

@@ -623,6 +623,9 @@ fun EmptyConversationsPlaceholder(modifier: Modifier = Modifier) {
  * @param isEnabled Whether the input field should be enabled.
  * @param isHomoglyphEncodingEnabled Whether to optimize text using homoglyph encoding.
  * @param maxByteSize The maximum allowed size of the message in bytes.
+ * @param isVoiceBurstEnabled Whether to show the voice burst button when input is empty.
+ * @param voiceBurstState The current state of Voice Burst recording.
+ * @param onVoiceBurstClick Callback when the voice burst button is clicked.
  */
 @Composable
 fun MessageInput(
@@ -633,6 +636,9 @@ fun MessageInput(
     modifier: Modifier = Modifier,
     isHomoglyphEncodingEnabled: Boolean = false,
     maxByteSize: Int = MESSAGE_CHARACTER_LIMIT_BYTES,
+    isVoiceBurstEnabled: Boolean = false,
+    voiceBurstState: org.meshtastic.feature.voiceburst.model.VoiceBurstState = org.meshtastic.feature.voiceburst.model.VoiceBurstState.Idle,
+    onVoiceBurstClick: () -> Unit = {},
 ) {
     val currentText =
         if (isHomoglyphEncodingEnabled) {
@@ -675,8 +681,18 @@ fun MessageInput(
             }
         },
         trailingIcon = {
-            IconButton(onClick = { if (canSend) onSendMessage() }, enabled = canSend) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(Res.string.send))
+            if (messageText.isEmpty() && isVoiceBurstEnabled) {
+                org.meshtastic.feature.voiceburst.ui.VoiceBurstButton(
+                    state = voiceBurstState,
+                    onClick = onVoiceBurstClick,
+                )
+            } else {
+                IconButton(onClick = { if (canSend) onSendMessage() }, enabled = canSend) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = stringResource(Res.string.send),
+                    )
+                }
             }
         },
     )

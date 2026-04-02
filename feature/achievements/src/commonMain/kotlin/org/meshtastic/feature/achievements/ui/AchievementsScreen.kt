@@ -1,9 +1,18 @@
 /*
  * Copyright (c) 2026 Chris7X
  *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 package org.meshtastic.feature.achievements.ui
@@ -18,6 +27,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.BluetoothConnected
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.DeviceHub
@@ -31,6 +41,7 @@ import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -50,26 +61,54 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.meshtastic.core.common.util.DateFormatter
+import org.meshtastic.core.resources.Res
+import org.meshtastic.core.resources.achievement_desc_first_dm_received
+import org.meshtastic.core.resources.achievement_desc_first_message_sent
+import org.meshtastic.core.resources.achievement_desc_first_node
+import org.meshtastic.core.resources.achievement_desc_firmware_updated
+import org.meshtastic.core.resources.achievement_desc_node_7days
+import org.meshtastic.core.resources.achievement_desc_profile_exported
+import org.meshtastic.core.resources.achievement_desc_sensor_connected
+import org.meshtastic.core.resources.achievement_desc_telemetry_received
+import org.meshtastic.core.resources.achievement_desc_ten_nodes
+import org.meshtastic.core.resources.achievement_desc_traceroute
+import org.meshtastic.core.resources.achievement_name_first_dm_received
+import org.meshtastic.core.resources.achievement_name_first_message_sent
+import org.meshtastic.core.resources.achievement_name_first_node
+import org.meshtastic.core.resources.achievement_name_firmware_updated
+import org.meshtastic.core.resources.achievement_name_node_7days
+import org.meshtastic.core.resources.achievement_name_profile_exported
+import org.meshtastic.core.resources.achievement_name_sensor_connected
+import org.meshtastic.core.resources.achievement_name_telemetry_received
+import org.meshtastic.core.resources.achievement_name_ten_nodes
+import org.meshtastic.core.resources.achievement_name_traceroute
+import org.meshtastic.core.resources.achievement_title_screen
+import org.meshtastic.core.resources.achievement_unlocked_at
+import org.meshtastic.core.resources.achievement_unlocked_multiple
+import org.meshtastic.core.resources.achievement_unlocked_single
 import org.meshtastic.feature.achievements.model.AchievementId
 import org.meshtastic.feature.achievements.model.AchievementRecord
-import java.text.DateFormat
-import java.util.Date
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AchievementsScreen(
     viewModel: AchievementsViewModel = koinViewModel(),
+    onBack: (() -> Unit)? = null,
 ) {
     val achievements by viewModel.achievements.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Snackbar aggregata: un solo messaggio per batch di unlock
+    // Aggregate snackbar: one message per batch of unlocks
+    val unlockSingleStr = stringResource(Res.string.achievement_unlocked_single)
+    val unlockMultipleStr = stringResource(Res.string.achievement_unlocked_multiple)
     LaunchedEffect(Unit) {
         viewModel.unlockEvents.collect { event ->
             val message = when {
-                event.count == 1 -> "Nuovo traguardo sbloccato!"
-                event.count > 1 -> "${event.count} nuovi traguardi sbloccati!"
+                event.count == 1 -> unlockSingleStr
+                event.count > 1 -> unlockMultipleStr.replace("%1\$d", event.count.toString())
                 else -> return@collect
             }
             snackbarHostState.showSnackbar(message = message)
@@ -77,7 +116,21 @@ fun AchievementsScreen(
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Traguardi Meshtastic") }) },
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(Res.string.achievement_title_screen)) },
+                navigationIcon = {
+                    if (onBack != null) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.Rounded.ArrowBack,
+                                contentDescription = null,
+                            )
+                        }
+                    }
+                },
+            )
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         LazyColumn(
@@ -95,7 +148,7 @@ fun AchievementsScreen(
 
 @Composable
 private fun AchievementItem(record: AchievementRecord) {
-    // Elementi bloccati: ridotta opacità per segnalare stato senza aggiungere rumore visivo
+    // Locked items: reduced opacity to indicate state without adding visual noise
     val itemAlpha = if (record.isUnlocked) 1f else 0.45f
 
     ListItem(
@@ -111,9 +164,9 @@ private fun AchievementItem(record: AchievementRecord) {
         },
         supportingContent = {
             if (record.isUnlocked) {
-                val date = DateFormat.getDateInstance().format(Date(record.unlockedAt!!))
+                val date = DateFormatter.formatDate(record.unlockedAt!!)
                 Text(
-                    text = "✓ Sbloccato il $date",
+                    text = stringResource(Res.string.achievement_unlocked_at, date),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -132,9 +185,9 @@ private fun AchievementItem(record: AchievementRecord) {
 }
 
 /**
- * Icona circolare monocromatica:
- * - Sbloccato: sfondo primaryContainer pieno + icona tematica
- * - Bloccato: solo bordo outline su surfaceVariant + icona tematica
+ * Circular monochromatic icon:
+ * - Unlocked: full primaryContainer background + themed icon
+ * - Locked: outline border on surfaceVariant + themed icon
  */
 @Composable
 private fun AchievementIcon(record: AchievementRecord) {
@@ -178,34 +231,36 @@ private fun AchievementIcon(record: AchievementRecord) {
 // ─── Extension functions on AchievementId ───────────────────────────────────
 
 /** Short, plain name — no childish metaphors. */
+@Composable
 fun AchievementId.displayName(): String = when (this) {
-    AchievementId.FIRST_NODE         -> "First node connected"
-    AchievementId.FIRST_MESSAGE_SENT -> "First message sent"
-    AchievementId.FIRST_DM_RECEIVED  -> "First message received"
-    AchievementId.TEN_NODES          -> "10 nodes discovered"
-    AchievementId.TRACEROUTE         -> "Traceroute completed"
-    AchievementId.PROFILE_EXPORTED   -> "Profile exported"
-    AchievementId.FIRMWARE_UPDATED   -> "Firmware updated"
-    AchievementId.NODE_7DAYS         -> "Node active 7 days"
-    AchievementId.TELEMETRY_RECEIVED -> "Telemetry received"
-    AchievementId.SENSOR_CONNECTED   -> "Environmental sensor detected"
+    AchievementId.FIRST_NODE         -> stringResource(Res.string.achievement_name_first_node)
+    AchievementId.FIRST_MESSAGE_SENT -> stringResource(Res.string.achievement_name_first_message_sent)
+    AchievementId.FIRST_DM_RECEIVED  -> stringResource(Res.string.achievement_name_first_dm_received)
+    AchievementId.TEN_NODES          -> stringResource(Res.string.achievement_name_ten_nodes)
+    AchievementId.TRACEROUTE         -> stringResource(Res.string.achievement_name_traceroute)
+    AchievementId.PROFILE_EXPORTED   -> stringResource(Res.string.achievement_name_profile_exported)
+    AchievementId.FIRMWARE_UPDATED   -> stringResource(Res.string.achievement_name_firmware_updated)
+    AchievementId.NODE_7DAYS         -> stringResource(Res.string.achievement_name_node_7days)
+    AchievementId.TELEMETRY_RECEIVED -> stringResource(Res.string.achievement_name_telemetry_received)
+    AchievementId.SENSOR_CONNECTED   -> stringResource(Res.string.achievement_name_sensor_connected)
 }
 
 /**
  * Technical description shown only when the achievement is locked.
  * Explains the unlock condition — no hyperbole.
  */
+@Composable
 fun AchievementId.description(): String = when (this) {
-    AchievementId.FIRST_NODE         -> "Connect a Meshtastic node via Bluetooth."
-    AchievementId.FIRST_MESSAGE_SENT -> "Send a message on the mesh network."
-    AchievementId.FIRST_DM_RECEIVED  -> "Receive a direct message from another node."
-    AchievementId.TEN_NODES          -> "Reach 10 distinct nodes in the local database."
-    AchievementId.TRACEROUTE         -> "Run a traceroute to a remote node."
-    AchievementId.PROFILE_EXPORTED   -> "Export your node profile via QR or file."
-    AchievementId.FIRMWARE_UPDATED   -> "Apply a firmware update to the connected node."
-    AchievementId.NODE_7DAYS         -> "Keep the node active for 7 continuous days."
-    AchievementId.TELEMETRY_RECEIVED -> "Receive device telemetry data from a remote node."
-    AchievementId.SENSOR_CONNECTED   -> "Detect a node with an active environmental sensor."
+    AchievementId.FIRST_NODE         -> stringResource(Res.string.achievement_desc_first_node)
+    AchievementId.FIRST_MESSAGE_SENT -> stringResource(Res.string.achievement_desc_first_message_sent)
+    AchievementId.FIRST_DM_RECEIVED  -> stringResource(Res.string.achievement_desc_first_dm_received)
+    AchievementId.TEN_NODES          -> stringResource(Res.string.achievement_desc_ten_nodes)
+    AchievementId.TRACEROUTE         -> stringResource(Res.string.achievement_desc_traceroute)
+    AchievementId.PROFILE_EXPORTED   -> stringResource(Res.string.achievement_desc_profile_exported)
+    AchievementId.FIRMWARE_UPDATED   -> stringResource(Res.string.achievement_desc_firmware_updated)
+    AchievementId.NODE_7DAYS         -> stringResource(Res.string.achievement_desc_node_7days)
+    AchievementId.TELEMETRY_RECEIVED -> stringResource(Res.string.achievement_desc_telemetry_received)
+    AchievementId.SENSOR_CONNECTED   -> stringResource(Res.string.achievement_desc_sensor_connected)
 }
 
 /** Material 3 icon consistent with the technical domain of each achievement. */

@@ -1,5 +1,18 @@
 /*
  * Copyright (c) 2026 Chris7X
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package org.meshtastic.feature.messaging.component
 
@@ -38,15 +51,21 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlin.math.abs
 import kotlin.math.sin
 
+import org.meshtastic.core.resources.Res
+import org.meshtastic.core.resources.voice_burst_player_play
+import org.meshtastic.core.resources.voice_burst_player_stop
+import org.meshtastic.core.resources.voice_burst_not_available
+import org.jetbrains.compose.resources.stringResource
+
 /**
- * Player audio stile WhatsApp per le bubble Voice Burst.
+ * WhatsApp-style audio player for Voice Burst bubbles.
  *
- * [playingFilePathFlow] viene dal ViewModel (audioPlayer.playingFilePath).
- * Quando vale [audioFilePath], questa bubble mostra ■ e la waveform animata.
- * Quando vale altro o null, mostra ▶ e la waveform statica.
+ * [playingFilePathFlow] comes from the ViewModel (audioPlayer.playingFilePath).
+ * When it equals [audioFilePath], this bubble shows ■ and the animated waveform.
+ * Otherwise, it shows ▶ and a static waveform.
  *
- * Così il bug "rimane in play" è impossibile: la sorgente di verità è il player reale,
- * non uno stato locale al composable.
+ * This design ensures the "stuck in play" bug is impossible: the single source of truth 
+ * is the actual player, not a local state in the composable.
  */
 @Composable
 fun VoiceBurstPlayer(
@@ -57,7 +76,7 @@ fun VoiceBurstPlayer(
     playingFilePathFlow: StateFlow<String?>? = null,
     modifier: Modifier = Modifier,
 ) {
-    // isPlaying = true solo se questo file è quello ATTUALMENTE in riproduzione nel player
+    // isPlaying = true only if this file is the one CURRENTLY being played by the player
     val currentlyPlayingPath by (playingFilePathFlow
         ?.collectAsState()
         ?: androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) })
@@ -68,7 +87,7 @@ fun VoiceBurstPlayer(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        // Bottone play/stop
+        // Play/stop button
         Surface(
             modifier = Modifier
                 .size(36.dp)
@@ -82,7 +101,10 @@ fun VoiceBurstPlayer(
             Box(contentAlignment = Alignment.Center) {
                 Icon(
                     imageVector = if (isPlaying) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
-                    contentDescription = if (isPlaying) "Stop" else "Play",
+                    contentDescription = if (isPlaying) 
+                        stringResource(Res.string.voice_burst_player_stop) 
+                    else 
+                        stringResource(Res.string.voice_burst_player_play),
                     modifier = Modifier.size(22.dp),
                     tint = contentColor,
                 )
@@ -102,7 +124,7 @@ fun VoiceBurstPlayer(
             )
         } else {
             Text(
-                text = "Audio non disponibile",
+                text = stringResource(Res.string.voice_burst_not_available),
                 style = MaterialTheme.typography.bodySmall,
                 color = contentColor.copy(alpha = 0.5f),
             )

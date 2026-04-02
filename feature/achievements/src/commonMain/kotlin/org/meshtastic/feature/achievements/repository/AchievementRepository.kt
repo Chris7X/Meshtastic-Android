@@ -24,6 +24,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.datetime.Clock
 import org.meshtastic.feature.achievements.model.AchievementId
 import org.meshtastic.feature.achievements.model.AchievementRecord
 
@@ -36,7 +37,7 @@ interface AchievementRepository {
     val achievements: Flow<List<AchievementRecord>>
 
     /** Unlocks [id] with [timestamp] (default = now). Returns true if first unlock, false if already unlocked. */
-    suspend fun unlock(id: AchievementId, timestamp: Long = System.currentTimeMillis()): Boolean
+    suspend fun unlock(id: AchievementId, timestamp: Long = Clock.System.now().toEpochMilliseconds()): Boolean
 
     /** Marks the unlock notification for [id] as shown. */
     suspend fun markSeen(id: AchievementId)
@@ -68,7 +69,7 @@ class DefaultAchievementRepository(
     override suspend fun unlock(id: AchievementId, timestamp: Long): Boolean {
         var firstUnlock = false
         dataStore.edit { prefs ->
-            // Idempotenza: non sovrascrivere il timestamp originale
+            // Idempotency: do not overwrite the original timestamp
             if (prefs[unlockedAtKey(id)] == null) {
                 prefs[unlockedAtKey(id)] = timestamp
                 firstUnlock = true

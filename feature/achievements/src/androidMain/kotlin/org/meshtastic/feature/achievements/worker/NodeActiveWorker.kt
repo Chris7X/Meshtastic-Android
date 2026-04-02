@@ -24,9 +24,9 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import co.touchlab.kermit.Logger
+import kotlinx.coroutines.flow.first
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import org.meshtastic.core.repository.NodeRepository
 import org.meshtastic.feature.achievements.model.AchievementId
 import org.meshtastic.feature.achievements.repository.AchievementRepository
 import java.util.concurrent.TimeUnit
@@ -51,24 +51,25 @@ class NodeActiveWorker(
     private val achievementRepository: AchievementRepository by inject()
 
     override suspend fun doWork(): Result = try {
-        val records = achievementRepository.achievements
-            .collect { records ->  // nota: non usiamo .first() per compatibilità KMP
-                val firstNodeRecord = records.find { it.id == AchievementId.FIRST_NODE }
-                val firstSeenMs = firstNodeRecord?.unlockedAt
+        // Collect only the current snapshot — the flow is a DataStore-backed
+        // state flow, so first() returns immediately with the current value.
+        val records = achievementRepository.achievements.first()
+        val firstNodeRecord = records.find { it.id == AchievementId.FIRST_NODE }
+        val firstSeenMs = firstNodeRecord?.unlockedAt
 
-                if (firstSeenMs == null) {
-                    logger.d { "FIRST_NODE not yet unlocked — no node ever connected" }
-                    return@collect
-                }
+        if (firstSeenMs == null) {
+            logger.d { "FIRST_NODE not yet unlocked — no node ever connected" }
+            return Result.success()
+        }
 
-                val daysActive = (System.currentTimeMillis() - firstSeenMs) / MS_PER_DAY
-                if (daysActive >= 7) {
-                    achievementRepository.unlock(AchievementId.NODE_7DAYS)
-                    logger.i { "NODE_7DAYS unlocked after $daysActive days" }
-                } else {
-                    logger.d { "NODE_7DAYS: $daysActive/7 days — not yet" }
-                }
-            }
+        val daysActive = (System.currentTimeMillis() - firstSeenMs) / MS_PER_DAY
+        if (daysActive >= 7) {
+            achievementRepository.unlock(AchievementId.NODE_7DAYS)
+            logger.i { "NODE_7DAYS unlocked after $daysActive days" }
+        } else {
+            logger.d { "NODE_7DAYS: $daysActive/7 days — not yet" }
+        }
+
         Result.success()
     } catch (e: Exception) {
         logger.e(e) { "NodeActiveWorker failed" }

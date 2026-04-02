@@ -134,6 +134,20 @@ class UiPrefsImpl(
         scope.launch { dataStore.edit { it[KEY_SHOW_QUICK_CHAT_PREF] = show } }
     }
 
+    override val smartReplyEnabled: StateFlow<Boolean> =
+        dataStore.data.map { it[KEY_SMART_REPLY_ENABLED_PREF] ?: false }.stateIn(scope, SharingStarted.Eagerly, false)
+
+    override fun setSmartReplyEnabled(enabled: Boolean) {
+        scope.launch { dataStore.edit { it[KEY_SMART_REPLY_ENABLED_PREF] = enabled } }
+    }
+
+    override val excludedModulesEnabled: StateFlow<Boolean> =
+        dataStore.data.map { it[KEY_EXCLUDED_MODULES_ENABLED_PREF] ?: false }.stateIn(scope, SharingStarted.Eagerly, false)
+
+    override fun setExcludedModulesEnabled(enabled: Boolean) {
+        scope.launch { dataStore.edit { it[KEY_EXCLUDED_MODULES_ENABLED_PREF] = enabled } }
+    }
+
     override fun shouldProvideNodeLocation(nodeNum: Int): StateFlow<Boolean> =
         cachedFlow(provideNodeLocationFlows, nodeNum) {
             val key = booleanPreferencesKey(provideLocationKey(nodeNum))
@@ -149,6 +163,8 @@ class UiPrefsImpl(
     companion object {
         val KEY_HAS_SHOWN_NOT_PAIRED_WARNING_PREF = booleanPreferencesKey("has_shown_not_paired_warning")
         val KEY_SHOW_QUICK_CHAT_PREF = booleanPreferencesKey("show-quick-chat")
+        val KEY_SMART_REPLY_ENABLED_PREF = booleanPreferencesKey("smart-reply-enabled")
+        val KEY_EXCLUDED_MODULES_ENABLED_PREF = booleanPreferencesKey("excluded-modules-enabled")
 
         val KEY_APP_INTRO_COMPLETED = booleanPreferencesKey("app_intro_completed")
         val KEY_THEME = intPreferencesKey("theme")

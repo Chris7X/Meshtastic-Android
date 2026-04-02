@@ -78,6 +78,9 @@ import org.meshtastic.core.ui.component.SharedContactDialog
 import org.meshtastic.core.ui.component.smartScrollToIndex
 import org.meshtastic.core.ui.theme.AppTheme
 import org.meshtastic.core.ui.util.createClipEntry
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
+import org.meshtastic.feature.voiceburst.ui.VoiceBurstViewModel
 import org.meshtastic.feature.messaging.component.ActionModeTopBar
 import org.meshtastic.feature.messaging.component.DeleteMessageDialog
 import org.meshtastic.feature.messaging.component.MESSAGE_CHARACTER_LIMIT_BYTES
@@ -113,6 +116,13 @@ fun MessageScreen(
     val clipboardManager = LocalClipboard.current
     val focusManager = LocalFocusManager.current
 
+    // Voice burst playback — scoped to the current conversation.
+    // VoiceBurstViewModel requires destNodeId = contactKey so playback and recording
+    // stay isolated to this chat. The ViewModel is recreated if contactKey changes.
+    val voiceBurstViewModel: VoiceBurstViewModel =
+        koinViewModel(key = "vb_$contactKey") { parametersOf(contactKey) }
+    val playingFilePath = voiceBurstViewModel.playingFilePath
+
     val nodes by viewModel.nodeList.collectAsStateWithLifecycle()
     val ourNode by viewModel.ourNodeInfo.collectAsStateWithLifecycle()
     val connectionState by viewModel.connectionState.collectAsStateWithLifecycle()
@@ -121,6 +131,8 @@ fun MessageScreen(
     val pagedMessages = viewModel.getMessagesFromPaged(contactKey).collectAsLazyPagingItems()
     val contactSettings by viewModel.contactSettings.collectAsStateWithLifecycle(initialValue = emptyMap())
     val homoglyphEncodingEnabled by viewModel.homoglyphEncodingEnabled.collectAsStateWithLifecycle(initialValue = false)
+    val isVoiceBurstEnabled by voiceBurstViewModel.isFeatureEnabled.collectAsStateWithLifecycle()
+    val voiceBurstState by voiceBurstViewModel.state.collectAsStateWithLifecycle()
 
     // UI State managed within this Composable
     var replyingToPacketId by rememberSaveable { mutableStateOf<Int?>(null) }
@@ -342,14 +354,24 @@ fun MessageScreen(
                     onClearReply = { replyingToPacketId = null },
                     ourNode = ourNode,
                 )
-                MessageInput(
+                org.meshtastic.feature.messaging.component.MessageInput(
                     isEnabled = connectionState.isConnected(),
                     isHomoglyphEncodingEnabled = homoglyphEncodingEnabled,
-                    textFieldState = messageInputState,
+                    messageText = messageInputState.text.toString(),
+                    onMessageChange = { messageInputState.setTextAndPlaceCursorAtEnd(it) },
+                    isVoiceBurstEnabled = isVoiceBurstEnabled,
+                    voiceBurstState = voiceBurstState,
+                    onVoiceBurstClick = {
+                        if (voiceBurstState is org.meshtastic.feature.voiceburst.model.VoiceBurstState.Recording) {
+                            voiceBurstViewModel.stopRecording()
+                        } else {
+                            voiceBurstViewModel.startRecording()
+                        }
+                    },
                     onSendMessage = {
-                        val messageText = messageInputState.text.toString().trim { it.isWhitespace() }
-                        if (messageText.isNotEmpty()) {
-                            onEvent(MessageScreenEvent.SendMessage(messageText, replyingToPacketId))
+                        val text = messageInputState.text.toString().trim()
+                        if (text.isNotEmpty()) {
+                            onEvent(MessageScreenEvent.SendMessage(text, replyingToPacketId))
                         }
                     },
                 )
@@ -383,6 +405,8 @@ fun MessageScreen(
                     onDeleteMessages = { viewModel.deleteMessages(it) },
                     onSendMessage = { text, key -> viewModel.sendMessage(text, key) },
                     onReply = { message -> replyingToPacketId = message?.packetId },
+                    onPlayVoiceBurst = voiceBurstViewModel::playBurst,
+                    playingFilePathFlow = playingFilePath,
                 ),
                 quickEmojis = viewModel.frequentEmojis,
             )
@@ -414,83 +438,6 @@ private fun handleQuickChatAction(
     )
 }
 
-/**
- * The text input field for composing messages.
- *
- * @param isEnabled Whether the input field should be enabled.
- * @param textFieldState The [TextFieldState] managing the input's text.
- * @param modifier The modifier for this composable.
- * @param maxByteSize The maximum allowed size of the message in bytes.
- * @param onSendMessage Callback invoked when the send button is pressed or send IME action is triggered.
- */
-@Suppress("LongMethod") // Due to multiple parts of the OutlinedTextField
-@Composable
-private fun MessageInput(
-    isEnabled: Boolean,
-    isHomoglyphEncodingEnabled: Boolean,
-    textFieldState: TextFieldState,
-    modifier: Modifier = Modifier,
-    maxByteSize: Int = MESSAGE_CHARACTER_LIMIT_BYTES,
-    onSendMessage: () -> Unit,
-) {
-    val currentTextRaw = textFieldState.text.toString()
-
-    val currentText =
-        if (isHomoglyphEncodingEnabled) {
-            HomoglyphCharacterStringTransformer.optimizeUtf8StringWithHomoglyphs(currentTextRaw)
-        } else {
-            currentTextRaw
-        }
-
-    val currentByteLength =
-        remember(currentText) {
-            // Recalculate only when text changes
-            currentText.encodeToByteArray().size
-        }
-
-    val isOverLimit = currentByteLength > maxByteSize
-    val canSend = !isOverLimit && currentText.isNotEmpty() && isEnabled
-
-    OutlinedTextField(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-        state = textFieldState,
-        lineLimits = TextFieldLineLimits.MultiLine(1, MAX_LINES),
-        label = { Text(stringResource(Res.string.message_input_label)) },
-        enabled = isEnabled,
-        shape = RoundedCornerShape(ROUNDED_CORNER_PERCENT.toFloat()),
-        isError = isOverLimit,
-        placeholder = { Text(stringResource(Res.string.type_a_message)) },
-        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-        supportingText = {
-            if (isEnabled) { // Only show supporting text if input is enabled
-                Text(
-                    text = "$currentByteLength/$maxByteSize",
-                    style = MaterialTheme.typography.bodySmall,
-                    color =
-                    if (isOverLimit) {
-                        MaterialTheme.colorScheme.error
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.End,
-                )
-            }
-        },
-        // Direct byte limiting via inputTransformation in TextFieldState is complex.
-        // The current approach (show error, disable send) is generally preferred for UX.
-        // If strict real-time byte trimming is required, it needs careful handling of
-        // cursor position and multi-byte characters, likely outside simple inputTransformation.
-        trailingIcon = {
-            IconButton(onClick = { if (canSend) onSendMessage() }, enabled = canSend) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Default.Send,
-                    contentDescription = stringResource(Res.string.send),
-                )
-            }
-        },
-    )
-}
 
 @PreviewLightDark
 @Composable
@@ -498,41 +445,31 @@ private fun MessageInputPreview() {
     AppTheme {
         Surface {
             Column(modifier = Modifier.padding(8.dp)) {
-                MessageInput(
+                org.meshtastic.feature.messaging.component.MessageInput(
                     isEnabled = true,
                     isHomoglyphEncodingEnabled = false,
-                    textFieldState = rememberTextFieldState("Hello"),
+                    messageText = "Hello",
+                    onMessageChange = {},
                     onSendMessage = {},
                 )
                 Spacer(Modifier.size(16.dp))
-                MessageInput(
-                    isEnabled = false,
-                    isHomoglyphEncodingEnabled = false,
-                    textFieldState = rememberTextFieldState("Disabled"),
-                    onSendMessage = {},
-                )
-                Spacer(Modifier.size(16.dp))
-                MessageInput(
+                org.meshtastic.feature.messaging.component.MessageInput(
                     isEnabled = true,
                     isHomoglyphEncodingEnabled = false,
-                    textFieldState =
-                    rememberTextFieldState(
-                        "A very long message that might exceed the byte limit " +
+                    messageText = "A very long message that might exceed the byte limit " +
                             "and cause an error state display for the user to see clearly.",
-                    ),
+                    onMessageChange = {},
                     onSendMessage = {},
-                    maxByteSize = 50, // Test with a smaller limit
+                    maxByteSize = 50,
                 )
                 Spacer(Modifier.size(16.dp))
-                // Test Japanese characters (multi-byte)
-                MessageInput(
+                org.meshtastic.feature.messaging.component.MessageInput(
                     isEnabled = true,
                     isHomoglyphEncodingEnabled = false,
-                    textFieldState = rememberTextFieldState("こんにちは世界"), // Hello World in Japanese
+                    messageText = "こんにちは世界", // Hello World in Japanese
+                    onMessageChange = {},
                     onSendMessage = {},
                     maxByteSize = 10,
-                    // Each char is 3 bytes, so "こん" (6 bytes) is ok, "こんに" (9 bytes) is ok, "こんにち"
-                    // (12 bytes) is over
                 )
             }
         }
