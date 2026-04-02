@@ -17,27 +17,27 @@
 package org.meshtastic.feature.voiceburst.audio
 
 /**
- * Interfaccia platform-agnostica per la registrazione audio.
+ * Platform-agnostic interface for audio recording.
  *
- * L'implementazione Android ([AndroidAudioRecorder]) usa [android.media.AudioRecord]
- * con parametri ottimali per Codec2:
+ * The Android implementation ([AndroidAudioRecorder]) uses [android.media.AudioRecord]
+ * with optimal parameters for Codec2:
  *   - sample rate: 8000 Hz
  *   - encoding: PCM 16-bit
- *   - canale: CHANNEL_IN_MONO
- *   - durata massima: 1000ms (MVP)
+ *   - channel: CHANNEL_IN_MONO
+ *   - maximum duration: 1000ms (MVP)
  *
- * Richiede il permesso android.permission.RECORD_AUDIO.
- * La UI deve verificare il permesso prima di chiamare [startRecording].
+ * Requires the android.permission.RECORD_AUDIO permission.
+ * The UI must verify the permission before calling [startRecording].
  */
 interface AudioRecorder {
 
     /**
-     * Avvia la registrazione.
+     * Starts recording.
      *
-     * @param onComplete callback invocato al termine con i dati PCM e la durata effettiva.
-     *                   Invocato sul thread del chiamante tramite coroutine.
-     * @param onError callback invocato in caso di errore di recording.
-     * @param maxDurationMs durata massima in millisecondi (default: 1000ms MVP).
+     * @param onComplete callback invoked on completion with PCM data and the effective duration.
+     *                   Invoked on the caller's thread via coroutine.
+     * @param onError callback invoked in case of a recording error.
+     * @param maxDurationMs maximum duration in milliseconds (default: 1000ms MVP).
      */
     fun startRecording(
         onComplete: (pcmData: ShortArray, durationMs: Int) -> Unit,
@@ -46,12 +46,12 @@ interface AudioRecorder {
     )
 
     /**
-     * Ferma anticipatamente la registrazione.
-     * Se la registrazione non è in corso, è un no-op.
-     * Al completamento chiama comunque [onComplete] con i dati raccolti finora.
+     * Stops the recording early.
+     * If no recording is in progress, this is a no-op.
+     * On completion, [onComplete] is still called with the data collected so far.
      */
     fun stopRecording()
 
-    /** True se una registrazione è attualmente in corso. */
+    /** True if a recording is currently in progress. */
     val isRecording: Boolean
 }

@@ -21,48 +21,48 @@ import kotlinx.coroutines.flow.StateFlow
 import org.meshtastic.feature.voiceburst.model.VoiceBurstPayload
 
 /**
- * Interfaccia platform-agnostica per l'invio e la ricezione di Voice Burst.
+ * Platform-agnostic interface for sending and receiving Voice Bursts.
  *
- * L'implementazione Android ([AndroidVoiceBurstRepository]) usa [RadioController]
- * per inviare [DataPacket] con dataType = [VoiceBurstPayload.PORT_NUM].
+ * The Android implementation ([AndroidVoiceBurstRepository]) uses [RadioController]
+ * to send [DataPacket] with dataType = [VoiceBurstPayload.PORT_NUM].
  */
 interface VoiceBurstRepository {
 
     /**
-     * Feature flag: Voice Burst experimental abilitato dall'utente.
-     * Default: false. Leggibile come StateFlow per reattività nella UI.
+     * Feature flag: Voice Burst experimental enabled by user.
+     * Default: false. Readable as StateFlow for UI reactivity.
      */
     val isFeatureEnabled: StateFlow<Boolean>
 
     /**
-     * Abilita o disabilita la feature Voice Burst.
-     * Persiste in DataStore.
+     * Enable or disable the Voice Burst feature.
+     * Persists in DataStore.
      */
     suspend fun setFeatureEnabled(enabled: Boolean)
 
     /**
-     * Invia un [VoiceBurstPayload] al nodo destinatario via BLE/RadioController
-     * e lo salva nel DB locale per mostrarlo nella chat.
+     * Sends a [VoiceBurstPayload] to the recipient node via BLE/RadioController
+     * and saves it in the local DB to show it in the chat.
      *
-     * @param payload    il payload già encodato
-     * @param contactKey chiave contatto nel formato "<channel>!<nodeId>" (es. "0!42424243", "8!42424243")
-     * @return true se il pacchetto è stato consegnato al RadioController, false altrimenti
+     * @param payload    the already encoded payload
+     * @param contactKey contact key in the format "<channel>!<nodeId>" (e.g. "0!42424243", "8!42424243")
+     * @return true if the packet was delivered to RadioController, false otherwise
      */
     suspend fun sendBurst(payload: VoiceBurstPayload, contactKey: String): Boolean
 
     /**
-     * Flow di burst ricevuti da altri nodi.
-     * Emette ogni volta che arriva un DataPacket con PORT_NUM = 256 e
-     * il payload è decodificabile.
+     * Flow of bursts received from other nodes.
+     * Emits every time a DataPacket with PORT_NUM = 256 arrives and
+     * the payload is decodable.
      */
     val incomingBursts: Flow<VoiceBurstPayload>
 
     /**
-     * Legge i bytes Codec2 da disco dato il path relativo salvato in [Message.audioFilePath].
-     * Usato per riprodurre un messaggio vocale precedentemente ricevuto/inviato.
+     * Reads Codec2 bytes from disk given the relative path saved in [Message.audioFilePath].
+     * Used to play a previously received/sent voice message.
      *
-     * @param relativePath path relativo a filesDir, es. "voice_bursts/12345678.c2"
-     * @return ByteArray con i bytes Codec2, o null se il file non esiste o errore I/O
+     * @param relativePath path relative to filesDir, e.g. "voice_bursts/12345678.c2"
+     * @return ByteArray with Codec2 bytes, or null if the file doesn't exist or I/O error
      */
     fun readAudioFile(relativePath: String): ByteArray?
 }

@@ -66,7 +66,7 @@ data class VoiceBurstPayload(
 
     /**
      * Serializes the payload into a ByteArray to insert into [DataPacket.bytes].
-     * Formato: [version:1][codecMode:1][durationMs:2 BE][audioData:N]
+     * Format: [version:1][codecMode:1][durationMs:2 BE][audioData:N]
      */
     fun encode(): ByteArray {
         val buf = ByteArray(4 + audioData.size)

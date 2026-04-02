@@ -8,23 +8,23 @@ import kotlinx.coroutines.flow.StateFlow
 interface AudioPlayer {
 
     /**
-     * Riproduce il buffer PCM fornito.
+     * Plays the provided PCM buffer.
      * @param pcmData  PCM 16-bit mono 8000 Hz
-     * @param filePath path logico del file in riproduzione (usato da UI per sapere quale bubble è attiva)
-     * @param onComplete invocato al termine naturale o dopo stop
+     * @param filePath logical path of the file being played (used by the UI to know which bubble is active)
+     * @param onComplete invoked on natural completion or after stop
      */
     fun play(pcmData: ShortArray, filePath: String = "", onComplete: () -> Unit = {})
 
-    /** Interrompe la riproduzione in corso. */
+    /** Stops the current playback. */
     fun stop()
 
-    /** True se l'audio è in riproduzione. */
+    /** True if audio is currently playing. */
     val isPlaying: Boolean
 
     /**
-     * Path del file attualmente in riproduzione, null se nessuno.
-     * Permette alla UI di sapere quale bubble mostrare come "in play".
-     * Emette null al termine/stop.
+     * Path of the file currently being played, null if none.
+     * Allows the UI to know which bubble to display as "playing".
+     * Emits null on completion/stop.
      */
     val playingFilePath: StateFlow<String?>
 }

@@ -76,7 +76,7 @@ class AndroidAudioRecorder(
         val bufferSize = maxOf(minBufferSize, totalSamples * 2 /* bytes per short */)
 
         try {
-            @Suppress("MissingPermission") // permesso verificato dal chiamante
+            @Suppress("MissingPermission") // Permission verified by the caller
             audioRecord = AudioRecord(
                 MediaRecorder.AudioSource.MIC,
                 sampleRate,

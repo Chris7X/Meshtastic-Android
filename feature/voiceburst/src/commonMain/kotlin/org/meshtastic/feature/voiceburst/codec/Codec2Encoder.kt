@@ -17,40 +17,40 @@
 package org.meshtastic.feature.voiceburst.codec
 
 /**
- * Interfaccia platform-agnostica per l'encoding/decoding Codec2.
+ * Platform-agnostic interface for Codec2 encoding/decoding.
  *
- * L'implementazione Android ([AndroidCodec2Encoder]) usa JNI + libcodec2.
- * Se la libreria non è disponibile ([isStub]=true), cade in modalità stub
- * (sinusoide 440Hz) per permettere sviluppo e CI senza la .so.
+ * The Android implementation ([AndroidCodec2Encoder]) uses JNI + libcodec2.
+ * If the library is unavailable ([isStub]=true), it falls back to stub mode
+ * (440Hz sine wave) to allow development and CI without the .so file.
  *
- * Implementa [AutoCloseable]: chiamare [close()] (o usare `use {}`) per
- * rilasciare lo stato JNI quando il codec non serve più.
+ * Implements [AutoCloseable]: call [close()] (or use `use {}`) to
+ * release the JNI state when the codec is no longer needed.
  */
 interface Codec2Encoder : AutoCloseable {
 
     /**
-     * Encode di un buffer PCM 16-bit mono 8kHz in bytes Codec2 700B.
+     * Encodes a 16-bit mono 8kHz PCM buffer into Codec2 700B bytes.
      *
-     * @param pcmData array di short PCM (16-bit, mono, 8000 Hz)
-     * @return bytes compressi Codec2, oppure null in caso di errore
+     * @param pcmData PCM short array (16-bit, mono, 8000 Hz)
+     * @return compressed Codec2 bytes, or null in case of error
      *
-     * Dimensioni attese:
+     * Expected dimensions:
      *   input:  8000 samples/s × 1s = 8000 shorts = 16000 bytes PCM
-     *   output: ~88 bytes Codec2 700B per 1 secondo
+     *   output: ~88 bytes Codec2 700B per 1 second
      */
     fun encode(pcmData: ShortArray): ByteArray?
 
     /**
-     * Decode di bytes Codec2 700B in PCM 16-bit mono 8kHz.
+     * Decodes Codec2 700B bytes into 16-bit mono 8kHz PCM.
      *
-     * @param codec2Data bytes compressi
-     * @return array di short PCM, oppure null in caso di errore
+     * @param codec2Data compressed bytes
+     * @return PCM short array, or null in case of error
      */
     fun decode(codec2Data: ByteArray): ShortArray?
 
     /**
-     * Indica se questa implementazione è funzionante (libreria disponibile)
-     * o è uno stub.
+     * Indicates whether this implementation is functional (library available)
+     * or a stub.
      */
     val isStub: Boolean
 }

@@ -20,13 +20,13 @@ import org.koin.core.annotation.ComponentScan
 import org.koin.core.annotation.Module
 
 /**
- * Modulo Koin commonMain per il feature Voice Burst.
+ * Koin commonMain module for the Voice Burst feature.
  *
- * Il @ComponentScan scansiona il package e registra automaticamente tramite KSP:
- *   - VoiceBurstViewModel (@KoinViewModel con @InjectedParam destNodeId)
+ * @ComponentScan scans the package and auto-registers via KSP:
+ *   - VoiceBurstViewModel (@KoinViewModel with @InjectedParam destNodeId)
  *
- * Le dipendenze Android-only (AudioRecorder, Codec2Encoder, DataStore, Repository)
- * sono registrate in [FeatureVoiceBurstAndroidModule] (androidMain).
+ * Android-only dependencies (AudioRecorder, Codec2Encoder, DataStore, Repository)
+ * are registered in [FeatureVoiceBurstAndroidModule] (androidMain).
  */
 @Module
 @ComponentScan("org.meshtastic.feature.voiceburst")

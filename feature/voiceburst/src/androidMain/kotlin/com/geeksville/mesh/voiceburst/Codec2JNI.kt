@@ -11,8 +11,8 @@ package com.geeksville.mesh.voiceburst
 import android.util.Log
 
 /**
- * Binding JNI a libcodec2 prebuilt.
- * Entrambe le .so (libcodec2.so + libcodec2_jni.so) sono in jniLibs/.
+ * JNI binding to a prebuilt libcodec2 library.
+ * Both shared objects (libcodec2.so + libcodec2_jni.so) must be present in jniLibs/.
  */
 internal object Codec2JNI {
 
@@ -23,18 +23,18 @@ internal object Codec2JNI {
         if (!loaded) {
             try {
                 System.loadLibrary("codec2")
-                Log.i(TAG, "libcodec2.so caricata OK")
+                Log.i(TAG, "libcodec2.so loaded OK")
             } catch (e: UnsatisfiedLinkError) {
-                Log.e(TAG, "Impossibile caricare libcodec2.so: ${e.message}")
+                Log.e(TAG, "Failed to load libcodec2.so: ${e.message}")
                 return
             }
             try {
                 System.loadLibrary("codec2_jni")
-                Log.i(TAG, "libcodec2_jni.so caricata OK — JNI attivo")
+                Log.i(TAG, "libcodec2_jni.so loaded OK — JNI active")
                 loaded = true
             } catch (e: UnsatisfiedLinkError) {
-                Log.e(TAG, "Impossibile caricare libcodec2_jni.so: ${e.message}")
-                // loaded rimane false -> fallback stub
+                Log.e(TAG, "Failed to load libcodec2_jni.so: ${e.message}")
+                // loaded remains false -> fallback to stub
             }
         }
     }
@@ -42,7 +42,7 @@ internal object Codec2JNI {
     val isAvailable: Boolean
         get() = loaded
 
-    // Modalita' codec2
+    // Codec2 operating modes
     const val MODE_3200 = 0
     const val MODE_2400 = 1
     const val MODE_1600 = 2

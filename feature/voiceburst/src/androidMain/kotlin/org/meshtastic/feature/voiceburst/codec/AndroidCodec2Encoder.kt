@@ -16,7 +16,7 @@
  */
 package org.meshtastic.feature.voiceburst.codec
 
-import com.geeksville.mesh.voiceburst.Codec2JNI
+import org.meshtastic.codec2.Codec2Jni
 
 import co.touchlab.kermit.Logger
 import kotlin.math.PI
@@ -29,7 +29,7 @@ private const val TAG = "AndroidCodec2Encoder"
 /**
  * Android implementation of [Codec2Encoder].
  *
- * When [Codec2JNI.isAvailable] = true, uses libcodec2 via JNI (real voice audio).
+ * When [Codec2Jni.isAvailable] = true, uses libcodec2 via JNI (real voice audio).
  * Otherwise falls back to STUB mode (440Hz sine wave) for development/CI/builds without .so.
  *
  * Codec2 700B parameters:
@@ -42,9 +42,9 @@ private const val TAG = "AndroidCodec2Encoder"
  *   1. Amplitude normalization (brings to 70% of Short.MAX_VALUE)
  *   2. Simple VAD: if RMS < threshold, returns silence without encoding
  *
- * Lifecycle JNI:
- *   L'handle Codec2 viene creato nel costruttore e distrutto in [close()].
- *   Usare [use { }] o chiamare [close()] esplicitamente.
+ * JNI Lifecycle:
+ *   The Codec2 handle is created in the constructor and destroyed in [close()].
+ *   Ensure to use [use { }] or call [close()] explicitly.
  */
 class AndroidCodec2Encoder : Codec2Encoder, AutoCloseable {
 
@@ -52,18 +52,18 @@ class AndroidCodec2Encoder : Codec2Encoder, AutoCloseable {
     override val isStub: Boolean
 
     init {
-        Codec2JNI.ensureLoaded()
-        if (Codec2JNI.isAvailable) {
-            val handle = Codec2JNI.create(Codec2JNI.MODE_700C)
+        Codec2Jni.ensureLoaded()
+        if (Codec2Jni.isAvailable) {
+            val handle = Codec2Jni.create(Codec2Jni.MODE_700C)
             if (handle != 0L) {
                 codec2Handle = handle
                 isStub = false
                 Logger.i(TAG) {
-                    "Codec2 JNI OK: samplesPerFrame=${Codec2JNI.getSamplesPerFrame(Codec2JNI.MODE_700C)}" +
-                        " bytesPerFrame=${Codec2JNI.getBytesPerFrame(Codec2JNI.MODE_700C)}"
+                    "Codec2 JNI OK: samplesPerFrame=${Codec2Jni.getSamplesPerFrame(Codec2Jni.MODE_700C)}" +
+                        " bytesPerFrame=${Codec2Jni.getBytesPerFrame(Codec2Jni.MODE_700C)}"
                 }
             } else {
-                Logger.e(TAG) { "Codec2JNI.create() returned 0 — falling back to stub mode" }
+                Logger.e(TAG) { "Codec2Jni.create() returned 0 — falling back to stub mode" }
                 codec2Handle = 0L
                 isStub = true
             }
@@ -76,7 +76,7 @@ class AndroidCodec2Encoder : Codec2Encoder, AutoCloseable {
 
     override fun close() {
         if (codec2Handle != 0L) {
-            Codec2JNI.destroy(codec2Handle)
+            Codec2Jni.destroy(codec2Handle)
             Logger.d(TAG) { "Codec2 handle released" }
         }
     }
@@ -104,20 +104,20 @@ class AndroidCodec2Encoder : Codec2Encoder, AutoCloseable {
     }
 
     private fun encodeJni(pcmData: ShortArray): ByteArray? {
-        val samplesPerFrame = Codec2JNI.getSamplesPerFrame(Codec2JNI.MODE_700C)
-        val bytesPerFrame   = Codec2JNI.getBytesPerFrame(Codec2JNI.MODE_700C)
+        val samplesPerFrame = Codec2Jni.getSamplesPerFrame(Codec2Jni.MODE_700C)
+        val bytesPerFrame   = Codec2Jni.getBytesPerFrame(Codec2Jni.MODE_700C)
 
-        // Preprocessing: normalizzazione
+        // Preprocessing: normalization
         val normalized = normalize(pcmData)
 
-        // VAD: non inviare silenzio
+        // VAD: do not send silence
         val rms = computeRms(normalized)
         if (rms < SILENCE_RMS_THRESHOLD) {
             Logger.d(TAG) { "VAD: silence detected (RMS=$rms) — skipping encode" }
             return ByteArray(0)
         }
 
-        // Calcola il numero di frame necessari (arrotonda in su)
+        // Calculate needed frames (round up)
         val frameCount = (normalized.size + samplesPerFrame - 1) / samplesPerFrame
         val output = ByteArray(frameCount * bytesPerFrame)
         var outOffset = 0
@@ -126,7 +126,7 @@ class AndroidCodec2Encoder : Codec2Encoder, AutoCloseable {
             val inStart = frameIdx * samplesPerFrame
             val inEnd   = minOf(inStart + samplesPerFrame, normalized.size)
 
-            // Estrai frame (con zero-padding se incompleto)
+            // Extract frame (with zero-padding if incomplete)
             val frame = if (inEnd - inStart == samplesPerFrame) {
                 normalized.copyOfRange(inStart, inEnd)
             } else {
@@ -136,7 +136,7 @@ class AndroidCodec2Encoder : Codec2Encoder, AutoCloseable {
                 }
             }
 
-            val encoded = Codec2JNI.encode(codec2Handle, frame)
+            val encoded = Codec2Jni.encode(codec2Handle, frame)
             if (encoded == null || encoded.size != bytesPerFrame) {
                 Logger.e(TAG) { "Encode failed at frame $frameIdx" }
                 return null
@@ -172,8 +172,8 @@ class AndroidCodec2Encoder : Codec2Encoder, AutoCloseable {
     }
 
     private fun decodeJni(codec2Data: ByteArray): ShortArray? {
-        val samplesPerFrame = Codec2JNI.getSamplesPerFrame(Codec2JNI.MODE_700C)
-        val bytesPerFrame   = Codec2JNI.getBytesPerFrame(Codec2JNI.MODE_700C)
+        val samplesPerFrame = Codec2Jni.getSamplesPerFrame(Codec2Jni.MODE_700C)
+        val bytesPerFrame   = Codec2Jni.getBytesPerFrame(Codec2Jni.MODE_700C)
 
         if (codec2Data.size % bytesPerFrame != 0) {
             Logger.w(TAG) {
@@ -192,7 +192,7 @@ class AndroidCodec2Encoder : Codec2Encoder, AutoCloseable {
             val inStart = frameIdx * bytesPerFrame
             val frame   = codec2Data.copyOfRange(inStart, inStart + bytesPerFrame)
 
-            val decoded = Codec2JNI.decode(codec2Handle, frame)
+            val decoded = Codec2Jni.decode(codec2Handle, frame)
             if (decoded == null || decoded.size != samplesPerFrame) {
                 Logger.e(TAG) { "Decode failed at frame $frameIdx" }
                 return null
@@ -217,7 +217,7 @@ class AndroidCodec2Encoder : Codec2Encoder, AutoCloseable {
      */
     private fun normalize(pcm: ShortArray): ShortArray {
         val maxAmp = pcm.maxOfOrNull { abs(it.toInt()) }?.toFloat() ?: return pcm
-        if (maxAmp < 1f) return pcm  // silenzio assoluto
+        if (maxAmp < 1f) return pcm  // absolute silence
 
         val gain = (TARGET_AMPLITUDE * Short.MAX_VALUE) / maxAmp
         // Limit maximum gain to 10x to avoid excessive noise amplification

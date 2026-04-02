@@ -40,25 +40,35 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.unit.dp
 import org.meshtastic.feature.voiceburst.model.VoiceBurstState
+import org.meshtastic.core.resources.Res
+import org.meshtastic.core.resources.voice_burst_record
+import org.meshtastic.core.resources.voice_burst_recording
+import org.meshtastic.core.resources.voice_burst_encoding
+import org.meshtastic.core.resources.voice_burst_sending
+import org.meshtastic.core.resources.voice_burst_sent
+import org.meshtastic.core.resources.voice_burst_error
+import org.meshtastic.core.resources.voice_burst_received
+import org.meshtastic.core.resources.voice_burst_unsupported
+import org.jetbrains.compose.resources.stringResource
 
 /**
- * Bottone PTT (Push-To-Talk) per Voice Burst.
+ * PTT (Push-To-Talk) button for Voice Burst.
  *
- * Visibile solo se [VoiceBurstViewModel.isVisible] == true (feature flag abilitato).
- * Disabilitato durante encoding/sending/rate limit.
+ * Visible only if [VoiceBurstViewModel.isVisible] == true (feature flag enabled).
+ * Disabled during encoding/sending/rate limit.
  *
- * Stati visivi:
- *   Idle       → icona microfono, colore normale
- *   Recording  → icona microfono pulsante (animazione scale), colore error/rosso
- *   Encoding   → icona microfono, colore secondario, disabilitato
- *   Sending    → icona microfono, colore secondario, disabilitato
- *   Sent       → icona microfono, colore primary (feedback breve)
- *   Error      → icona MicOff, colore error
- *   Unsupported → nascosto (il chiamante non deve renderizzare il composable)
+ * Visual states:
+ *   Idle       -> Mic icon, normal color
+ *   Recording  -> Pulsing Mic icon (scale animation), error/red color
+ *   Encoding   -> Mic icon, secondary color, disabled
+ *   Sending    -> Mic icon, secondary color, disabled
+ *   Sent       -> Mic icon, primary color (short feedback)
+ *   Error      -> MicOff icon, error color
+ *   Unsupported -> hidden (caller should not render the composable)
  *
- * @param state    Stato corrente della macchina a stati
- * @param onClick  Callback quando l'utente preme il bottone
- * @param modifier Modifier opzionale
+ * @param state    Current state machine state
+ * @param onClick  Callback when the user presses the button
+ * @param modifier Optional modifier
  */
 @Composable
 fun VoiceBurstButton(
@@ -66,7 +76,7 @@ fun VoiceBurstButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Abilitato in Idle (avvia), Recording (ferma), Sent (avvia subito) ed Error (reset)
+    // Enabled in Idle (start), Recording (stop), Sent (start immediately), and Error (reset)
     val isEnabled = state is VoiceBurstState.Idle
         || state is VoiceBurstState.Recording
         || state is VoiceBurstState.Sent
@@ -84,7 +94,7 @@ fun VoiceBurstButton(
         label = "voiceBurstTint",
     )
 
-    // Pulsazione durante registrazione
+    // Pulsation during recording
     val infiniteTransition = rememberInfiniteTransition(label = "recordingPulse")
     val scale by infiniteTransition.animateFloat(
         initialValue = 1f,
@@ -102,7 +112,7 @@ fun VoiceBurstButton(
         modifier = modifier,
     ) {
         Box(contentAlignment = Alignment.Center) {
-            // Anello di progresso durante recording: mostra quanto manca al secondo
+            // Progress ring during recording: shows fraction of the max duration
             if (isRecording) {
                 val progress = ((state as VoiceBurstState.Recording).elapsedMs / 1000f)
                     .coerceIn(0f, 1f)
@@ -122,15 +132,15 @@ fun VoiceBurstButton(
                     else                           -> Icons.Rounded.Mic
                 },
                 contentDescription = when (state) {
-                    is VoiceBurstState.Idle        -> "Registra Voice Burst"
-                    is VoiceBurstState.Recording   -> "Registrazione ${(state.elapsedMs / 100) / 10f}s — tocca per inviare"
-                    is VoiceBurstState.Encoding    -> "Encoding in corso"
+                    is VoiceBurstState.Idle        -> stringResource(Res.string.voice_burst_record)
+                    is VoiceBurstState.Recording   -> stringResource(Res.string.voice_burst_recording, (state.elapsedMs / 100) / 10f)
+                    is VoiceBurstState.Encoding    -> stringResource(Res.string.voice_burst_encoding)
                     is VoiceBurstState.Sending,
-                    is VoiceBurstState.Queued      -> "Invio in corso"
-                    is VoiceBurstState.Sent        -> "Inviato ✓"
-                    is VoiceBurstState.Error       -> "Errore — tocca per riprovare"
-                    is VoiceBurstState.Received    -> "Burst ricevuto"
-                    is VoiceBurstState.Unsupported -> "Non supportato"
+                    is VoiceBurstState.Queued      -> stringResource(Res.string.voice_burst_sending)
+                    is VoiceBurstState.Sent        -> stringResource(Res.string.voice_burst_sent)
+                    is VoiceBurstState.Error       -> stringResource(Res.string.voice_burst_error)
+                    is VoiceBurstState.Received    -> stringResource(Res.string.voice_burst_received)
+                    is VoiceBurstState.Unsupported -> stringResource(Res.string.voice_burst_unsupported)
                 },
                 tint = tint,
                 modifier = Modifier.size(24.dp).scale(scale),

@@ -21,50 +21,50 @@ import kotlin.math.sqrt
 import com.geeksville.mesh.voiceburst.Codec2JNI
 
 /**
- * Test di unità per [AndroidCodec2Encoder].
+ * Unit tests for [AndroidCodec2Encoder].
  *
- * In ambiente CI/JVM (senza libcodec2.so) tutti i test vengono eseguiti contro lo STUB.
- * Quando il JNI è disponibile (device/emulatore), [Codec2JNI.isAvailable] = true e
- * i test verificano il codec reale.
+ * In CI/JVM environments (without libcodec2.so) all tests run against the STUB.
+ * When JNI is available (device/emulator), [Codec2JNI.isAvailable] = true and
+ * the tests verify the real codec.
  *
- * I test sono strutturati per passare in entrambe le modalità:
- *   - Stub: verifica dimensioni e proprietà strutturali
- *   - JNI reale: verifica anche la qualità audio (SNR minimo)
+ * Tests are structured to pass in both modes:
+ *   - Stub: verifies sizes and structural properties
+ *   - Real JNI: also verifies audio quality (minimum SNR)
  */
 class AndroidCodec2EncoderTest {
 
-    // ─── Stub mode tests (sempre eseguiti) ────────────────────────────────────
+    // ─── Stub mode tests (always executed) ────────────────────────────────────
 
     @Test
     fun `encode returns non-null for valid PCM input`() {
         val encoder = AndroidCodec2Encoder()
         val pcm = generateSineWave(freq = 440f, durationSec = 1.0f, sampleRate = 8000)
         val encoded = encoder.encode(pcm)
-        assertNotNull("encode() non deve restituire null per input valido", encoded)
+        assertNotNull("encode() must not return null for valid input", encoded)
     }
 
     @Test
     fun `encode returns null for empty input`() {
         val encoder = AndroidCodec2Encoder()
         val result = encoder.encode(ShortArray(0))
-        assertEquals("encode() deve restituire null per input vuoto", null, result)
+        assertEquals("encode() must return null for empty input", null, result)
     }
 
     @Test
     fun `encode output size is within codec2 700B budget`() {
         val encoder = AndroidCodec2Encoder()
-        // 1 secondo @ 8000 Hz = 8000 campioni
+        // 1 second @ 8000 Hz = 8000 samples
         val pcm = generateSineWave(freq = 440f, durationSec = 1.0f, sampleRate = 8000)
         val encoded = encoder.encode(pcm)!!
 
-        // Codec2 700B: max 100 bytes per 1 secondo (25 frame × 4 bytes)
-        // Accettiamo fino a 110 bytes per tolleranza frame arrotondamento
+        // Codec2 700B: max 100 bytes per 1 second (25 frames × 4 bytes)
+        // Accepting up to 110 bytes to allow for frame rounding tolerance
         assertTrue(
-            "Payload troppo grande per LoRa: ${encoded.size} bytes > 110 (limite budget MVP)",
+            "Payload too large for LoRa: ${encoded.size} bytes > 110 (MVP budget limit)",
             encoded.size <= 110,
         )
         assertTrue(
-            "Payload inaspettatamente piccolo: ${encoded.size} bytes",
+            "Payload unexpectedly small: ${encoded.size} bytes",
             encoded.size >= 4,
         )
     }
@@ -75,14 +75,14 @@ class AndroidCodec2EncoderTest {
         val pcm = generateSineWave(freq = 440f, durationSec = 1.0f, sampleRate = 8000)
         val encoded = encoder.encode(pcm)!!
         val decoded = encoder.decode(encoded)
-        assertNotNull("decode() non deve restituire null per input valido", decoded)
+        assertNotNull("decode() must not return null for valid input", decoded)
     }
 
     @Test
     fun `decode returns null for empty input`() {
         val encoder = AndroidCodec2Encoder()
         val result = encoder.decode(ByteArray(0))
-        assertEquals("decode() deve restituire null per input vuoto", null, result)
+        assertEquals("decode() must return null for empty input", null, result)
     }
 
     @Test
@@ -92,11 +92,11 @@ class AndroidCodec2EncoderTest {
         val encoded = encoder.encode(pcm)!!
         val decoded = encoder.decode(encoded)!!
 
-        // La lunghezza può differire leggermente per via del frame padding
-        // ma deve essere vicina a quella originale
+        // Decoded length may differ slightly due to frame padding,
+        // but must be close to the original length
         val ratio = decoded.size.toDouble() / pcm.size.toDouble()
         assertTrue(
-            "Lunghezza decoded (${ decoded.size}) troppo diversa dall'originale (${pcm.size}). Ratio: $ratio",
+            "Decoded length (${decoded.size}) too far from original (${pcm.size}). Ratio: $ratio",
             ratio in 0.8..1.2,
         )
     }
@@ -107,7 +107,7 @@ class AndroidCodec2EncoderTest {
         val pcm = generateSineWave(freq = 440f, durationSec = 1.0f, sampleRate = 8000)
         val codec2Bytes = encoder.encode(pcm)!!
 
-        // Simula il ciclo completo di serializzazione del payload
+        // Simulate the complete payload serialization cycle
         val payload = org.meshtastic.feature.voiceburst.model.VoiceBurstPayload(
             version = 1,
             codecMode = 0,
@@ -117,7 +117,7 @@ class AndroidCodec2EncoderTest {
         val wireBytes = payload.encode()
         val decodedPayload = org.meshtastic.feature.voiceburst.model.VoiceBurstPayload.decode(wireBytes)
 
-        assertNotNull("VoiceBurstPayload.decode() non deve restituire null", decodedPayload)
+        assertNotNull("VoiceBurstPayload.decode() must not return null", decodedPayload)
         assertEquals("version", payload.version, decodedPayload!!.version)
         assertEquals("codecMode", payload.codecMode, decodedPayload.codecMode)
         assertEquals("durationMs", payload.durationMs, decodedPayload.durationMs)
@@ -138,21 +138,21 @@ class AndroidCodec2EncoderTest {
         )
         val wireBytes = payload.encode()
 
-        // MTU LoRa max ~233 bytes. Con overhead mesh: budget sicuro = 200 bytes.
+        // LoRa max MTU ~233 bytes. With mesh overhead: safe budget = 200 bytes.
         assertTrue(
-            "Payload ${wireBytes.size} bytes supera il budget LoRa (200 bytes)",
+            "Payload ${wireBytes.size} bytes exceeds LoRa budget (200 bytes)",
             wireBytes.size <= 200,
         )
     }
 
-    // ─── JNI mode tests (eseguiti solo se Codec2Jni.isAvailable) ─────────────
+    // ─── JNI mode tests (executed only if Codec2Jni.isAvailable) ─────────────
 
     @Test
     fun `JNI roundtrip SNR above minimum threshold`() {
         Codec2JNI.ensureLoaded()
         if (!Codec2JNI.isAvailable) {
             // Skip gracefully in stub mode
-            println("[SKIP] Codec2JNI non disponibile — test SNR saltato (stub mode)")
+            println("[SKIP] Codec2JNI not available — SNR test skipped (stub mode)")
             return
         }
 
@@ -161,14 +161,14 @@ class AndroidCodec2EncoderTest {
         val encoded = encoder.encode(original)!!
         val decoded = encoder.decode(encoded)!!
 
-        // Misura SNR approssimativo sul segnale ricostruito
+        // Approximate SNR measurement on the reconstructed signal
         val snrDb = computeSnrDb(original, decoded)
         println("SNR Codec2 700B roundtrip: $snrDb dB")
 
-        // Codec2 700B a 440Hz sinusoidale: ci aspettiamo almeno 5 dB SNR
-        // (soglia bassa — Codec2 700B è un codec vocale, non hi-fi)
+        // Codec2 700B at 440Hz sinusoidal: we expect at least 5 dB SNR
+        // (low threshold — Codec2 700B is a voice codec, not hi-fi)
         assertTrue(
-            "SNR troppo basso per Codec2 700B: $snrDb dB (minimo atteso: 5 dB)",
+            "SNR too low for Codec2 700B: $snrDb dB (minimum expected: 5 dB)",
             snrDb >= 5.0,
         )
     }
@@ -177,22 +177,22 @@ class AndroidCodec2EncoderTest {
     fun `JNI handle lifecycle create and destroy`() {
         Codec2JNI.ensureLoaded()
         if (!Codec2JNI.isAvailable) {
-            println("[SKIP] Codec2JNI non disponibile")
+            println("[SKIP] Codec2JNI not available")
             return
         }
         val handle = Codec2JNI.create(Codec2JNI.MODE_700C)
-        assertTrue("Handle deve essere != 0", handle != 0L)
-        assertEquals("samplesPerFrame deve essere 320 per 700B", 320, Codec2JNI.getSamplesPerFrame(Codec2JNI.MODE_700C))
-        assertTrue("bytesPerFrame deve essere > 0", Codec2JNI.getBytesPerFrame(Codec2JNI.MODE_700C) > 0)
+        assertTrue("Handle must be != 0", handle != 0L)
+        assertEquals("samplesPerFrame must be 320 for 700B", 320, Codec2JNI.getSamplesPerFrame(Codec2JNI.MODE_700C))
+        assertTrue("bytesPerFrame must be > 0", Codec2JNI.getBytesPerFrame(Codec2JNI.MODE_700C) > 0)
         Codec2JNI.destroy(handle)
-        // Se arriviamo qui senza crash, il lifecycle è corretto
+        // If we reach this point without a crash, the lifecycle is correct
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
     /**
-     * Genera una sinusoide PCM 16-bit come segnale di test.
-     * Ampiezza al 70% di Short.MAX_VALUE per simulare input vocale normalizzato.
+     * Generates a 16-bit PCM sine wave as a test signal.
+     * Amplitude at 70% of Short.MAX_VALUE to simulate normalized voice input.
      */
     private fun generateSineWave(freq: Float, durationSec: Float, sampleRate: Int): ShortArray {
         val numSamples = (sampleRate * durationSec).toInt()
@@ -204,8 +204,8 @@ class AndroidCodec2EncoderTest {
     }
 
     /**
-     * Calcola il Signal-to-Noise Ratio approssimativo tra due segnali.
-     * I segnali devono avere lunghezze simili — tronca al minimo.
+     * Computes the approximate Signal-to-Noise Ratio between two signals.
+     * Signals must have similar lengths — truncates to the minimum.
      */
     private fun computeSnrDb(original: ShortArray, decoded: ShortArray): Double {
         val len = minOf(original.size, decoded.size)
@@ -221,7 +221,7 @@ class AndroidCodec2EncoderTest {
             noisePower  += (s - d) * (s - d)
         }
 
-        if (noisePower < 1e-10) return Double.POSITIVE_INFINITY  // decoded perfetto
+        if (noisePower < 1e-10) return Double.POSITIVE_INFINITY  // perfect decode
         return 10.0 * kotlin.math.log10(signalPower / noisePower)
     }
 }

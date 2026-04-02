@@ -19,15 +19,15 @@ import kotlinx.coroutines.launch
 private const val TAG = "AndroidAudioPlayer"
 
 /**
- * Implementazione Android di [AudioPlayer].
+ * Android implementation of [AudioPlayer].
  *
- * Fix rispetto alle versioni precedenti:
- *  - BUG: MODE_STATIC con bufferSize < minBufferSize → STATE_NO_STATIC_DATA (state=2) → silenzio.
- *    FIX: bufferSize = maxOf(minBufferSize, pcmBytes) SEMPRE, anche in static mode.
- *  - Uso MODE_STREAM sempre: più semplice, evita il problema di STATE_NO_STATIC_DATA.
- *    Per 1 secondo a 8kHz (16000 bytes) MODE_STREAM è più che sufficiente.
- *  - USAGE_MEDIA → altoparlante principale (non auricolare).
- *  - [playingFilePath] StateFlow per sincronizzare l'icona play/stop nella UI.
+ * Fixes compared to previous versions:
+ *  - BUG: MODE_STATIC with bufferSize < minBufferSize → STATE_NO_STATIC_DATA (state=2) → silence.
+ *    FIX: bufferSize = maxOf(minBufferSize, pcmBytes) ALWAYS, even in static mode.
+ *  - Using MODE_STREAM: simpler and avoids the STATE_NO_STATIC_DATA issue.
+ *    For 1 second at 8kHz (16000 bytes) MODE_STREAM is more than adequate.
+ *  - USAGE_MEDIA → main speaker (not earpiece).
+ *  - [playingFilePath] StateFlow to sync play/stop icons in the UI.
  */
 class AndroidAudioPlayer(
     private val scope: CoroutineScope,
@@ -43,14 +43,14 @@ class AndroidAudioPlayer(
         get() = audioTrack?.playState == AudioTrack.PLAYSTATE_PLAYING
 
     override fun play(pcmData: ShortArray, filePath: String, onComplete: () -> Unit) {
-        // Se già in play, ferma prima
+        // If already playing, stop before starting a new track
         if (isPlaying) {
-            Logger.d(TAG) { "Stop traccia precedente prima di avviare nuova" }
+            Logger.d(TAG) { "Stopping previous track before starting new one" }
             stopInternal()
         }
 
         if (pcmData.isEmpty()) {
-            Logger.w(TAG) { "PCM vuoto — skip" }
+            Logger.w(TAG) { "PCM data is empty — skipping playback" }
             onComplete()
             return
         }
@@ -61,14 +61,14 @@ class AndroidAudioPlayer(
 
         val minBufferSize = AudioTrack.getMinBufferSize(sampleRate, channelConfig, audioEncoding)
         if (minBufferSize <= 0) {
-            Logger.e(TAG) { "getMinBufferSize errore: $minBufferSize" }
+            Logger.e(TAG) { "getMinBufferSize error: $minBufferSize" }
             onComplete()
             return
         }
 
-        // CRITICO: bufferSize deve essere >= minBufferSize SEMPRE.
-        // Con MODE_STATIC, se bufferSize < minBufferSize → state=STATE_NO_STATIC_DATA=2 → silenzio.
-        // Usiamo MODE_STREAM per semplicità e robustezza.
+        // CRITICAL: bufferSize must always be >= minBufferSize.
+        // With MODE_STATIC, if bufferSize < minBufferSize → state=STATE_NO_STATIC_DATA=2 → silence.
+        // MODE_STREAM is used for simplicity and robustness.
         val pcmBytes   = pcmData.size * Short.SIZE_BYTES
         val bufferSize = maxOf(minBufferSize, pcmBytes)
 
@@ -86,13 +86,13 @@ class AndroidAudioPlayer(
         val track = try {
             AudioTrack(attrs, format, bufferSize, AudioTrack.MODE_STREAM, AudioManager.AUDIO_SESSION_ID_GENERATE)
         } catch (e: Exception) {
-            Logger.e(TAG, e) { "Errore creazione AudioTrack" }
+            Logger.e(TAG, e) { "Failed to create AudioTrack" }
             onComplete()
             return
         }
 
         if (track.state != AudioTrack.STATE_INITIALIZED) {
-            Logger.e(TAG) { "AudioTrack non inizializzato: state=${track.state} (atteso ${AudioTrack.STATE_INITIALIZED})" }
+            Logger.e(TAG) { "AudioTrack not initialized: state=${track.state} (expected ${AudioTrack.STATE_INITIALIZED})" }
             track.release()
             onComplete()
             return
@@ -103,21 +103,21 @@ class AndroidAudioPlayer(
 
         playingJob = scope.launch(Dispatchers.IO) {
             try {
-                // MODE_STREAM: play() PRIMA, poi write() in streaming
+                // MODE_STREAM: call play() FIRST, then write() for streaming
                 track.play()
-                Logger.d(TAG) { "Riproduzione avviata: ${pcmData.size} samples @ ${sampleRate}Hz" }
+                Logger.d(TAG) { "Playback started: ${pcmData.size} samples @ ${sampleRate}Hz" }
 
                 val written = track.write(pcmData, 0, pcmData.size)
                 if (written < 0) {
-                    Logger.e(TAG) { "write() errore: $written" }
+                    Logger.e(TAG) { "write() error: $written" }
                 } else {
-                    Logger.d(TAG) { "Write completato: $written samples" }
-                    // Aspetta che il DAC finisca di suonare i campioni nel buffer
+                    Logger.d(TAG) { "Write complete: $written samples" }
+                    // Wait for the DAC to drain all samples in the buffer
                     val drainMs = written.toLong() * 1000L / sampleRate + DRAIN_GUARD_MS
                     kotlinx.coroutines.delay(drainMs)
                 }
             } catch (e: Exception) {
-                Logger.e(TAG, e) { "Errore riproduzione" }
+                Logger.e(TAG, e) { "Playback error" }
             } finally {
                 releaseTrack(track)
                 _playingFilePath.value = null
@@ -128,7 +128,7 @@ class AndroidAudioPlayer(
 
     override fun stop() {
         if (!isPlaying && playingJob?.isActive != true) return
-        Logger.d(TAG) { "Stop riproduzione" }
+        Logger.d(TAG) { "Stopping playback" }
         stopInternal()
     }
 
@@ -148,6 +148,6 @@ class AndroidAudioPlayer(
 
     companion object {
         private const val SAMPLE_RATE_HZ  = 8000
-        private const val DRAIN_GUARD_MS  = 150L  // margine extra per il DAC
+        private const val DRAIN_GUARD_MS  = 150L  // extra margin for DAC drain
     }
 }
