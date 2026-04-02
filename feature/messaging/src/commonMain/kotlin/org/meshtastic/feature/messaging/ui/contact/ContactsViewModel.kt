@@ -41,6 +41,12 @@ import org.meshtastic.core.ui.viewmodel.stateInWhileSubscribed
 import org.meshtastic.proto.ChannelSet
 import kotlin.collections.map as collectionsMap
 
+enum class ConversationFilter {
+    ALL,
+    DMS,
+    CHANNELS
+}
+
 @KoinViewModel
 class ContactsViewModel(
     private val nodeRepository: NodeRepository,
@@ -59,6 +65,12 @@ class ContactsViewModel(
     // Combine node info and myId to reduce argument count in subsequent combines
     private val identityFlow: Flow<Pair<MyNodeInfo?, String?>> =
         combine(nodeRepository.myNodeInfo, nodeRepository.myId) { info, id -> Pair(info, id) }
+
+    val conversationFilter = kotlinx.coroutines.flow.MutableStateFlow(ConversationFilter.ALL)
+
+    fun setConversationFilter(filter: ConversationFilter) {
+        conversationFilter.value = filter
+    }
 
     /**
      * Non-paginated contact list.
@@ -128,14 +140,15 @@ class ContactsViewModel(
             .stateInWhileSubscribed(initialValue = emptyList())
 
     val contactListPaged: Flow<PagingData<Contact>> =
-        combine(identityFlow, channels, packetRepository.getContactSettings()) { identity, channelSet, settings ->
+        combine(identityFlow, channels, packetRepository.getContactSettings(), conversationFilter) { identity, channelSet, settings, filter ->
             val (myNodeInfo, myId) = identity
-            ContactsPagedParams(myNodeInfo?.myNodeNum, channelSet, settings, myId)
+            ContactsPagedParams(myNodeInfo?.myNodeNum, channelSet, settings, myId, filter)
         }
             .flatMapLatest { params ->
                 val channelSet = params.channelSet
                 val settings = params.settings
                 val myId = params.myId
+                val filter = params.filter
 
                 packetRepository.getContactsPaged().map { pagingData ->
                     pagingData.map { packetData: DataPacket ->
@@ -180,6 +193,12 @@ class ContactsViewModel(
                                 null
                             },
                         )
+                    }.filter { contact ->
+                        when (filter) {
+                            ConversationFilter.ALL -> true
+                            ConversationFilter.DMS -> !contact.contactKey.endsWith("^all")
+                            ConversationFilter.CHANNELS -> contact.contactKey.endsWith("^all")
+                        }
                     }
                 }
             }
@@ -216,5 +235,6 @@ class ContactsViewModel(
         val channelSet: ChannelSet,
         val settings: Map<String, ContactSettings>,
         val myId: String?,
+        val filter: ConversationFilter,
     )
 }

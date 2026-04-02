@@ -680,13 +680,16 @@ fun MessageInput(
                 )
             }
         },
-        trailingIcon = {
+        leadingIcon = {
             if (messageText.isEmpty() && isVoiceBurstEnabled) {
                 org.meshtastic.feature.voiceburst.ui.VoiceBurstButton(
                     state = voiceBurstState,
                     onClick = onVoiceBurstClick,
                 )
-            } else {
+            }
+        },
+        trailingIcon = {
+            if (!(messageText.isEmpty() && isVoiceBurstEnabled)) {
                 IconButton(onClick = { if (canSend) onSendMessage() }, enabled = canSend) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Send,

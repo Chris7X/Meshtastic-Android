@@ -40,6 +40,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -138,24 +142,28 @@ fun ContactsScreen(
 
     // State for contacts list
     val pagedContacts = viewModel.contactListPaged.collectAsLazyPagingItems()
+    val currentFilter by viewModel.conversationFilter.collectAsStateWithLifecycle()
 
-    // Create channel placeholders (always show broadcast contacts, even when empty)
     val channels by viewModel.channels.collectAsStateWithLifecycle()
     val channelPlaceholders =
-        remember(channels.settings.size) {
-            (0 until channels.settings.size).map { ch ->
-                Contact(
-                    contactKey = "$ch^all",
-                    shortName = "$ch",
-                    longName = channels.getChannel(ch)?.name ?: "Channel $ch",
-                    lastMessageTime = null,
-                    lastMessageText = "",
-                    unreadCount = 0,
-                    messageCount = 0,
-                    isMuted = false,
-                    isUnmessageable = false,
-                    nodeColors = null,
-                )
+        remember(channels.settings.size, currentFilter) {
+            if (currentFilter == ConversationFilter.DMS) {
+                emptyList()
+            } else {
+                (0 until channels.settings.size).map { ch ->
+                    Contact(
+                        contactKey = "$ch^all",
+                        shortName = "$ch",
+                        longName = channels.getChannel(ch)?.name ?: "Channel $ch",
+                        lastMessageTime = null,
+                        lastMessageText = "",
+                        unreadCount = 0,
+                        messageCount = 0,
+                        isMuted = false,
+                        isUnmessageable = false,
+                        nodeColors = null,
+                    )
+                }
             }
         }
 
@@ -280,6 +288,26 @@ fun ContactsScreen(
                     },
                     isAllMuted = isAllMuted, // Pass the derived state
                 )
+            } else {
+                TabRow(
+                    selectedTabIndex = currentFilter.ordinal,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                ) {
+                    val tabs = listOf("Tutte", "DM", "Canali")
+                    val filters = listOf(
+                        ConversationFilter.ALL,
+                        ConversationFilter.DMS,
+                        ConversationFilter.CHANNELS
+                    )
+                    tabs.forEachIndexed { index, title ->
+                        Tab(
+                            selected = currentFilter == filters[index],
+                            onClick = { viewModel.setConversationFilter(filters[index]) },
+                            text = { Text(title) }
+                        )
+                    }
+                }
             }
 
             ContactListViewPaged(
