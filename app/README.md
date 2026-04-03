@@ -42,6 +42,7 @@ graph TB
   :app -.-> :core:resources
   :app -.-> :core:ui
   :app -.-> :core:barcode
+  :app -.-> :core:takserver
   :app -.-> :feature:intro
   :app -.-> :feature:messaging
   :app -.-> :feature:connections
@@ -49,6 +50,7 @@ graph TB
   :app -.-> :feature:node
   :app -.-> :feature:settings
   :app -.-> :feature:firmware
+  :app -.-> :feature:wifi-provision
   :app -.-> :feature:widget
 
 classDef android-application fill:#CAFFBF,stroke:#000,stroke-width:2px,color:#000;

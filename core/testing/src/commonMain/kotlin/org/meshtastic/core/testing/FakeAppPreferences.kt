@@ -31,7 +31,7 @@ import org.meshtastic.core.repository.RadioPrefs
 import org.meshtastic.core.repository.UiPrefs
 
 class FakeAnalyticsPrefs : AnalyticsPrefs {
-    override val analyticsAllowed = MutableStateFlow(false)
+    override val analyticsAllowed = MutableStateFlow(true)
 
     override fun setAnalyticsAllowed(allowed: Boolean) {
         analyticsAllowed.value = allowed
@@ -262,4 +262,13 @@ class FakeAppPreferences : AppPreferences {
     override val mapTileProvider = FakeMapTileProviderPrefs()
     override val radio = FakeRadioPrefs()
     override val mesh = FakeMeshPrefs()
+    override val tak = FakeTakPrefs()
+}
+
+class FakeTakPrefs : org.meshtastic.core.repository.TakPrefs {
+    override val isTakServerEnabled = MutableStateFlow(false)
+
+    override fun setTakServerEnabled(enabled: Boolean) {
+        isTakServerEnabled.value = enabled
+    }
 }

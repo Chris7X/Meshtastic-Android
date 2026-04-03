@@ -163,6 +163,7 @@ dependencies {
     implementation(projects.core.datastore)
     implementation(projects.core.prefs)
     implementation(projects.core.network)
+    implementation(projects.core.takserver)
     implementation(projects.core.resources)
     implementation(projects.core.service)
     implementation(projects.core.ui)
@@ -176,6 +177,7 @@ dependencies {
     implementation(projects.feature.connections)
     implementation(projects.feature.map)
     implementation(projects.feature.firmware)
+    implementation(projects.feature.wifiProvision)
     implementation(projects.feature.intro)
 
     // Compose Desktop
@@ -220,7 +222,7 @@ dependencies {
     implementation(libs.koin.annotations)
     implementation(libs.kotlinx.collections.immutable)
 
-    testImplementation(libs.junit)
+    testRuntimeOnly(libs.junit.vintage.engine)
     testImplementation(libs.koin.test)
     testImplementation(kotlin("test"))
 }

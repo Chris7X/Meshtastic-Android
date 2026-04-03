@@ -56,6 +56,14 @@ internal fun Project.configureKotlinAndroid(commonExtension: CommonExtension) {
         }
         compileOptions.sourceCompatibility = javaVersion
         compileOptions.targetCompatibility = javaVersion
+
+        // Exclude duplicate META-INF license files shipped by JUnit Platform JARs
+        packaging.resources.excludes.addAll(
+            listOf(
+                "META-INF/LICENSE.md",
+                "META-INF/LICENSE-notice.md",
+            ),
+        )
     }
 
     configureMokkery()
@@ -149,20 +157,30 @@ internal fun Project.configureKmpTestDependencies() {
                 implementation(libs.library("turbine"))
             }
 
-            // Configure androidHostTest if it exists
-            val androidHostTest = findByName("androidHostTest")
-            androidHostTest?.dependencies {
-                implementation(kotlin("test"))
-                implementation(libs.library("kotest-assertions"))
-                implementation(libs.library("kotest-property"))
-                implementation(libs.library("turbine"))
-                implementation(libs.library("robolectric"))
-                implementation(libs.library("androidx-test-core"))
+            // Configure androidHostTest lazily — the source set is created when the
+            // module's build script calls `withHostTest { }`, which runs *after* the
+            // convention plugin's `apply`.  Using `matching + configureEach` defers
+            // configuration until the source set actually materialises.
+            matching { it.name == "androidHostTest" }.configureEach {
+                dependencies {
+                    // kotlin.test auto-selects kotlin-test-junit because testAndroidHostTest
+                    // does NOT use useJUnitPlatform() (see configureTestOptions).
+                    // No explicit kotlin("test") or kotlin("test-junit") override needed —
+                    // adding them would conflict with auto-selection and break resource merging.
+                    implementation(libs.library("kotest-assertions"))
+                    implementation(libs.library("kotest-property"))
+                    implementation(libs.library("turbine"))
+                    implementation(libs.library("robolectric"))
+                    implementation(libs.library("androidx-test-core"))
+                }
             }
 
-            // Configure jvmTest if it exists
-            val jvmTest = findByName("jvmTest")
-            jvmTest?.dependencies { implementation(libs.library("kotest-runner-junit6")) }
+            // Configure jvmTest lazily for the same reason.
+            matching { it.name == "jvmTest" }.configureEach {
+                dependencies {
+                    implementation(libs.library("kotest-runner-junit6"))
+                }
+            }
         }
     }
 }
@@ -176,17 +194,21 @@ internal fun Project.configureKotlinJvm() {
 private inline fun <reified T : KotlinBaseExtension> Project.configureKotlin() {
     extensions.configure<T> {
         val javaVersion = if (project.name in listOf("api", "model", "proto")) 17 else 21
+        val isPublishedModule = project.name in listOf("api", "model", "proto")
         // Using Java 17 for published modules for better compatibility with consumers (e.g. plugins, older environments),
         // and Java 21 for the rest of the app.
         jvmToolchain(javaVersion)
 
         if (this is KotlinMultiplatformExtension) {
             targets.configureEach {
+                val isJvmTarget = platformType.name == "jvm" || platformType.name == "androidJvm"
                 compilations.configureEach {
                     compileTaskProvider.configure {
                         compilerOptions {
+                            if (!isPublishedModule) {
+                                freeCompilerArgs.add("-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi")
+                            }
                             freeCompilerArgs.addAll(
-                                "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
                                 "-opt-in=kotlin.uuid.ExperimentalUuidApi",
                                 "-opt-in=kotlin.time.ExperimentalTime",
                                 "-Xexpect-actual-classes",
@@ -194,6 +216,9 @@ private inline fun <reified T : KotlinBaseExtension> Project.configureKotlin() {
                                 "-Xannotation-default-target=param-property",
                                 "-Xskip-prerelease-check",
                             )
+                            if (isJvmTarget) {
+                                freeCompilerArgs.add("-jvm-default=no-compatibility")
+                            }
                         }
                     }
                 }
@@ -208,9 +233,10 @@ private inline fun <reified T : KotlinBaseExtension> Project.configureKotlin() {
             val isPublishedModule = project.name in listOf("api", "model", "proto")
             jvmTarget.set(if (isPublishedModule) JvmTarget.JVM_17 else JvmTarget.JVM_21)
             allWarningsAsErrors.set(warningsAsErrors)
+            if (!isPublishedModule) {
+                freeCompilerArgs.add("-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi")
+            }
             freeCompilerArgs.addAll(
-                // Enable experimental coroutines APIs, including Flow
-                "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
                 "-opt-in=kotlin.uuid.ExperimentalUuidApi",
                 "-opt-in=kotlin.time.ExperimentalTime",
                 "-Xexpect-actual-classes",

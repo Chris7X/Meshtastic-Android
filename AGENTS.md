@@ -12,7 +12,7 @@ Meshtastic-Android is a Kotlin Multiplatform (KMP) application for off-grid, dec
 - **Target SDK:** API 36. Min SDK: API 26 (Android 8.0).
 - **Flavors:**
   - `fdroid`: Open source only, no tracking/analytics.
-  - `google`: Includes Google Play Services (Maps) and DataDog analytics.
+  - `google`: Includes Google Play Services (Maps) and DataDog analytics (RUM, Session Replay, Compose action tracking, custom `connect` RUM action). 100% sampling, Apple-parity environments ("Local"/"Production").
 - **Core Architecture:** Modern Android Development (MAD) with KMP core.
   - **KMP Modules:** Most `core:*` modules. All declare `jvm()`, `iosArm64()`, and `iosSimulatorArm64()` targets and compile clean across all.
   - **Android-only Modules:** `core:api` (AIDL), `core:barcode` (CameraX + flavor-specific decoder). Shared contracts abstracted into `core:ui/commonMain`.
@@ -51,16 +51,18 @@ Meshtastic-Android is a Kotlin Multiplatform (KMP) application for off-grid, dec
 | `core/ble/` | Bluetooth Low Energy stack using Kable. |
 | `core/resources/` | Centralized string and image resources (Compose Multiplatform). |
 | `core/testing/` | **Shared test doubles, fakes, and utilities for `commonTest` across all KMP modules.** |
-| `feature/` | Feature modules (e.g., `settings`, `map`, `messaging`, `node`, `intro`, `connections`, `firmware`, `widget`). All are KMP with `jvm()` and `ios()` targets except `widget`. Use `meshtastic.kmp.feature` convention plugin. |
+| `feature/` | Feature modules (e.g., `settings`, `map`, `messaging`, `node`, `intro`, `connections`, `firmware`, `wifi-provision`, `widget`). All are KMP with `jvm()` and `ios()` targets except `widget`. Use `meshtastic.kmp.feature` convention plugin. |
+| `feature/wifi-provision` | KMP WiFi provisioning via BLE (Nymea protocol). Scans for provisioning devices, lists available networks, applies credentials. Uses `core:ble` Kable abstractions. |
 | `feature/firmware` | Fully KMP firmware update system: Unified OTA (BLE + WiFi via Kable/Ktor), native Nordic Secure DFU protocol (pure KMP, no Nordic library), USB/UF2 updates, and `FirmwareRetriever` with manifest-based resolution. Desktop is a first-class target. |
 | `desktop/` | Compose Desktop application — first non-Android KMP target. Thin host shell relying entirely on feature modules for shared UI. Full Koin DI graph, TCP, Serial/USB, and BLE transports with `want_config` handshake. |
-| `mesh_service_example/` | Sample app showing `core:api` service integration. |
+| `mesh_service_example/` | **DEPRECATED — scheduled for removal.** Legacy sample app showing `core:api` service integration. Do not add code here. See `core/api/README.md` for the current integration guide. |
 
 ## 3. Development Guidelines & Coding Standards
 
 ### A. UI Development (Jetpack Compose)
 -   **Material 3:** The app uses Material 3.
 -   **Strings:** MUST use the **Compose Multiplatform Resource** library in `core:resources` (`stringResource(Res.string.your_key)`). For ViewModels or non-composable Coroutines, use the asynchronous `getStringSuspend(Res.string.your_key)`. NEVER use hardcoded strings, and NEVER use the blocking `getString()` in a coroutine.
+-   **String formatting:** CMP's `stringResource(res, args)` / `getString(res, args)` only support `%N$s` (string) and `%N$d` (integer) positional specifiers. Float formats like `%N$.1f` are NOT supported — they pass through unsubstituted. For float values, pre-format in Kotlin using `NumberFormatter.format(value, decimalPlaces)` from `core:common` and pass the result as a `%N$s` string arg. Use bare `%` (not `%%`) for literal percent signs in CMP-consumed strings, since CMP does not convert `%%` to `%`. For JVM-only code using `formatString()` (which wraps `String.format()`), full printf specifiers including `%N$.Nf` and `%%` are supported.
 -   **Dialogs:** Use centralized components in `core:ui` (e.g., `MeshtasticResourceDialog`).
 -   **Alerts:** Use `AlertHost(alertManager)` from `core:ui/commonMain` in each platform host shell (`Main.kt`, `DesktopMainScreen.kt`). For global responses like traceroute and firmware validation, use the specialized common handlers: `TracerouteAlertHandler(uiViewModel)` and `FirmwareVersionCheck(uiViewModel)`. Do NOT duplicate inline alert-rendering logic or trigger alerts directly during composition. For shared QR/contact dialogs, use the `SharedDialogs(uiViewModel)` composable.
 -   **Placeholders:** For desktop/JVM features not yet implemented, use `PlaceholderScreen(name)` from `core:ui/commonMain`. Do NOT define inline placeholder composables in feature modules.
@@ -156,8 +158,19 @@ Always run commands in the following order to ensure reliability. Do not attempt
 *Note: If testing Compose UI on the JVM (Robolectric) with Java 21, pin your tests to `@Config(sdk = [34])` to avoid SDK 35 compatibility crashes.*
 
 **CI workflow conventions (GitHub Actions):**
-- Reusable CI is split into a host job and an Android matrix job in `.github/workflows/reusable-check.yml`.
-- Host job runs style/static checks, explicit Android lint tasks, unit tests, and Kover XML coverage uploads once.
+- Reusable CI in `.github/workflows/reusable-check.yml` is structured as four parallel job groups:
+  1. **`lint-check`** — Runs spotless, detekt, Android lint, and KMP smoke compile in a single Gradle invocation. Uses `fetch-depth: 0` (full clone) for spotless ratcheting and version code calculation. Produces `cache_read_only` output and computed `version_code` for downstream jobs.
+  2. **`test-shards`** — A 3-shard matrix that runs unit tests in parallel (depends on `lint-check`):
+     - `shard-core`: `allTests` for all `core:*` KMP modules.
+     - `shard-feature`: `allTests` for all `feature:*` KMP modules.
+      - `shard-app`: Explicit test tasks for pure-Android/JVM modules (`app`, `desktop`, `core:barcode`, `mesh_service_example`).
+      Each shard generates its own Kover XML coverage and uploads test results + coverage to Codecov with per-shard flags.
+      Downstream jobs (test-shards, android-check, build-desktop) use `fetch-depth: 1` and receive `VERSION_CODE` from lint-check via env var, enabling shallow clones.
+   3. **`android-check`** — Builds APKs and runs instrumented tests (depends on `lint-check`).
+  4. **`build-desktop`** — Desktop packaging (depends on `lint-check`).
+- Test sharding uses `fail-fast: false` so a failure in one shard does not cancel the others.
+- JUnit Platform parallel execution is enabled project-wide with classes running sequentially (`junit.jupiter.execution.parallel.mode.classes.default=same_thread`) to avoid `Dispatchers.setMain()` races (JVM-global singleton used by 19+ ViewModel test classes). Cross-module parallelism comes from Gradle forks (`maxParallelForks`).
+- `test-retry` plugin (maxRetries=2, maxFailures=10) is applied to all module types: `AndroidApplicationConventionPlugin`, `AndroidLibraryConventionPlugin`, and `KmpLibraryConventionPlugin`.
 - Android matrix job runs explicit assemble tasks for `app` and `mesh_service_example`; instrumentation is enabled by input and matrix API.
 - Prefer explicit Gradle task paths in CI (for example `app:lintFdroidDebug`, `app:connectedGoogleDebugAndroidTest`) instead of shorthand tasks like `lintDebug`.
 - Pull request CI is main-only (`.github/workflows/pull-request.yml` targets `main` branch).
@@ -165,9 +178,16 @@ Always run commands in the following order to ensure reliability. Do not attempt
 - PR `check-changes` path filtering lives in `.github/workflows/pull-request.yml` and must include module dirs plus build/workflow entrypoints (`build-logic/**`, `gradle/**`, `.github/workflows/**`, `gradlew`, `settings.gradle.kts`, etc.) so CI is not skipped for infra-only changes.
 - **Runner strategy (three tiers):**
   - **`ubuntu-24.04-arm`** — Lightweight/utility jobs (status checks, labelers, triage, changelog, release metadata, stale, moderation). These run only shell scripts or GitHub API calls and benefit from ARM runners' shorter queue times.
-  - **`ubuntu-24.04`** — Main Gradle-heavy jobs (CI `host-check`/`android-check`, release builds, Dokka, CodeQL, publish, dependency-submission). Pin where possible for reproducibility.
-  - **Desktop runners:** Reusable CI uses `ubuntu-latest` for the `build-desktop` job in `.github/workflows/reusable-check.yml`; release packaging matrix remains `[macos-latest, windows-latest, ubuntu-24.04, ubuntu-24.04-arm]`.
-- **CI JVM tuning:** `gradle.properties` is tuned for local dev (8g heap, 4g Kotlin daemon). CI workflows override via `GRADLE_OPTS` env var to fit the 7GB RAM budget of standard runners: `-Xmx4g` Gradle heap, `-Xmx2g` Kotlin daemon, VFS watching disabled, workers capped at 4.
+  - **`ubuntu-24.04`** — Main Gradle-heavy jobs (CI `lint-check`/`test-shards`/`android-check`, release builds, Dokka, CodeQL, publish, dependency-submission). Pin where possible for reproducibility.
+  - **Desktop runners:** Reusable CI uses `ubuntu-24.04` for the `build-desktop` job in `.github/workflows/reusable-check.yml`; release packaging matrix remains `[macos-latest, windows-latest, ubuntu-24.04, ubuntu-24.04-arm]`.
+- **CI Gradle properties:** `gradle.properties` is tuned for local dev (8g heap, 4g Kotlin daemon). CI uses `.github/ci-gradle.properties`, which the `gradle-setup` composite action copies to `~/.gradle/gradle.properties` before any Gradle invocation. Key CI overrides: `org.gradle.daemon=false` (single-use runners), `kotlin.incremental=false` (fresh checkouts), `-Xmx4g` Gradle heap, `-Xmx2g` Kotlin daemon, VFS watching disabled, workers capped at 4, `org.gradle.isolated-projects=true` for better parallelism. Disables unused Android build features (`resvalues`, `shaders`). This follows the nowinandroid `ci-gradle.properties` pattern.
+- **CI optimization strategies (2026):** Applied comprehensive CI optimizations (P0-P3):
+  - **P0 (merged Gradle invocations):** `lint-check` merges spotlessCheck, detekt, android lint, and kmpSmokeCompile into a single Gradle invocation to avoid 3x cold-start overhead. Uses `filter: 'blob:none'` for blobless git clone. Switches submodules from `'recursive'` to boolean (saves overhead on nested submodule discovery).
+  - **P1 (reduced PR overhead):** Added `run_coverage` workflow input (default: true); PRs skip Kover reports via conditional tasks in test-shards matrix. Increased `maxParallelForks` in CI to use all available processors (4 on standard runners) when `ci=true` property is set, vs. half locally for system responsiveness.
+  - **P2 (build feature optimization):** Detekt disables non-essential report formats in CI (html, txt, md); retains only xml + sarif for GitHub annotations. Disables unused Android build features (resvalues, shaders) in `ci-gradle.properties`.
+  - **P3 (structural improvement):** Removed `verify-check-changes-filter` from `validate-and-build` dependencies; it now runs in parallel as a standalone required check instead of gating the main build.
+- **`maxParallelForks` CI logic:** ProjectExtensions.kt line ~79 checks `project.findProperty("ci") == "true"` and uses full available processors in CI (4 forks on std runners) vs. half locally. All CI invocations pass `-Pci=true` to enable this.
+- **Detekt report formats:** Detekt.kt line ~44 checks `project.findProperty("ci") == "true"` and disables html, txt, md reports in CI; only xml + sarif are required for GitHub reporting.
 - **KMP Smoke Compile:** Use `./gradlew kmpSmokeCompile` instead of listing individual module compile tasks. The `kmpSmokeCompile` lifecycle task (registered in `RootConventionPlugin`) auto-discovers all KMP modules and depends on their `compileKotlinJvm` + `compileKotlinIosSimulatorArm64` tasks.
 - **`mavenLocal()` gated:** The `mavenLocal()` repository is disabled by default to prevent CI cache poisoning. For local JitPack testing, pass `-PuseMavenLocal` to Gradle.
 - **Terminal Pagers:** When running shell commands like `git diff` or `git log`, ALWAYS use `--no-pager` (e.g., `git --no-pager diff`) to prevent the agent from getting stuck in an interactive prompt.

@@ -44,6 +44,7 @@ import org.meshtastic.core.prefs.di.CorePrefsAndroidModule
 import org.meshtastic.core.prefs.di.CorePrefsModule
 import org.meshtastic.core.service.di.CoreServiceAndroidModule
 import org.meshtastic.core.service.di.CoreServiceModule
+import org.meshtastic.core.takserver.di.CoreTakServerModule
 import org.meshtastic.core.ui.di.CoreUiModule
 import org.meshtastic.feature.achievements.di.AchievementsModule
 import org.meshtastic.feature.achievements.di.FeatureAchievementsAndroidModule
@@ -59,6 +60,7 @@ import org.meshtastic.feature.settings.di.FeatureSettingsModule
 import org.meshtastic.feature.widget.di.FeatureWidgetModule
 import org.meshtastic.feature.voiceburst.di.FeatureVoiceBurstAndroidModule
 import org.meshtastic.feature.voiceburst.di.FeatureVoiceBurstModule
+import org.meshtastic.feature.wifiprovision.di.FeatureWifiProvisionModule
 
 @Module(
     includes =
@@ -82,6 +84,7 @@ import org.meshtastic.feature.voiceburst.di.FeatureVoiceBurstModule
         CoreServiceAndroidModule::class,
         CoreNetworkModule::class,
         CoreNetworkAndroidModule::class,
+        CoreTakServerModule::class,
         CoreUiModule::class,
         FeatureNodeModule::class,
         FeatureMessagingModule::class,
@@ -97,6 +100,7 @@ import org.meshtastic.feature.voiceburst.di.FeatureVoiceBurstModule
         FeatureAiAndroidModule::class,
         FeatureVoiceBurstModule::class,
         FeatureVoiceBurstAndroidModule::class,
+        FeatureWifiProvisionModule::class,
         NetworkModule::class,
         FlavorModule::class,
     ],

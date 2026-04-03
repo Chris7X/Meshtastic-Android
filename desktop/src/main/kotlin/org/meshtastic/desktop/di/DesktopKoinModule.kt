@@ -63,6 +63,7 @@ import org.meshtastic.core.network.di.module as coreNetworkModule
 import org.meshtastic.core.prefs.di.module as corePrefsModule
 import org.meshtastic.core.repository.di.module as coreRepositoryModule
 import org.meshtastic.core.service.di.module as coreServiceModule
+import org.meshtastic.core.takserver.di.module as coreTakServerModule
 import org.meshtastic.core.ui.di.module as coreUiModule
 import org.meshtastic.desktop.di.module as desktopDiModule
 import org.meshtastic.feature.connections.di.module as featureConnectionsModule
@@ -72,6 +73,7 @@ import org.meshtastic.feature.map.di.module as featureMapModule
 import org.meshtastic.feature.messaging.di.module as featureMessagingModule
 import org.meshtastic.feature.node.di.module as featureNodeModule
 import org.meshtastic.feature.settings.di.module as featureSettingsModule
+import org.meshtastic.feature.wifiprovision.di.module as featureWifiProvisionModule
 
 /**
  * Koin module for the Desktop target.
@@ -99,6 +101,7 @@ fun desktopModule() = module {
         org.meshtastic.core.ble.di.CoreBleModule().coreBleModule(),
         org.meshtastic.core.ui.di.CoreUiModule().coreUiModule(),
         org.meshtastic.core.service.di.CoreServiceModule().coreServiceModule(),
+        org.meshtastic.core.takserver.di.CoreTakServerModule().coreTakServerModule(),
         org.meshtastic.feature.settings.di.FeatureSettingsModule().featureSettingsModule(),
         org.meshtastic.feature.node.di.FeatureNodeModule().featureNodeModule(),
         org.meshtastic.feature.messaging.di.FeatureMessagingModule().featureMessagingModule(),
@@ -106,6 +109,7 @@ fun desktopModule() = module {
         org.meshtastic.feature.map.di.FeatureMapModule().featureMapModule(),
         org.meshtastic.feature.firmware.di.FeatureFirmwareModule().featureFirmwareModule(),
         org.meshtastic.feature.intro.di.FeatureIntroModule().featureIntroModule(),
+        org.meshtastic.feature.wifiprovision.di.FeatureWifiProvisionModule().featureWifiProvisionModule(),
         org.meshtastic.desktop.di.DesktopDiModule().desktopDiModule(),
         desktopPlatformStubsModule(),
     )

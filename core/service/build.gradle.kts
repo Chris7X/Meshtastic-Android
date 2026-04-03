@@ -41,6 +41,7 @@ kotlin {
             implementation(projects.core.ble)
             implementation(projects.core.prefs)
             implementation(projects.core.proto)
+            implementation(projects.core.takserver)
 
             implementation(libs.jetbrains.lifecycle.runtime)
             implementation(libs.kotlinx.atomicfu)
@@ -59,7 +60,6 @@ kotlin {
         val androidHostTest by getting {
             dependencies {
                 implementation(projects.core.testing)
-                implementation(libs.junit)
                 implementation(libs.robolectric)
                 implementation(libs.androidx.test.core)
                 implementation(libs.androidx.test.ext.junit)
@@ -69,7 +69,6 @@ kotlin {
 
         commonTest.dependencies {
             implementation(kotlin("test"))
-            implementation(libs.junit)
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.turbine)
         }

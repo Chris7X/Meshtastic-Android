@@ -46,6 +46,7 @@ kotlin {
             implementation(projects.core.di)
             implementation(projects.feature.voiceburst)
             implementation(projects.feature.achievements)
+            implementation(projects.core.takserver)
 
             implementation(libs.kotlinx.collections.immutable)
             implementation(libs.aboutlibraries.compose.m3)

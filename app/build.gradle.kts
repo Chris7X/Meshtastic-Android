@@ -150,7 +150,7 @@ configure<ApplicationExtension> {
             includeInBundle = false
         }
 
-        testInstrumentationRunner = "org.meshtastic.app.TestRunner"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     // Configure existing product flavors (defined by convention plugin)
@@ -228,6 +228,7 @@ dependencies {
     implementation(projects.core.resources)
     implementation(projects.core.ui)
     implementation(projects.core.barcode)
+    implementation(projects.core.takserver)
     implementation(projects.feature.intro)
     implementation(projects.feature.messaging)
     implementation(projects.feature.connections)
@@ -235,6 +236,7 @@ dependencies {
     implementation(projects.feature.node)
     implementation(projects.feature.settings)
     implementation(projects.feature.firmware)
+    implementation(projects.feature.wifiProvision)
     implementation(projects.feature.widget)
     implementation(projects.feature.achievements)
     implementation(projects.feature.voiceburst)
@@ -287,6 +289,8 @@ dependencies {
     googleImplementation(libs.dd.sdk.android.compose)
     googleImplementation(libs.dd.sdk.android.logs)
     googleImplementation(libs.dd.sdk.android.rum)
+    googleImplementation(libs.dd.sdk.android.session.replay)
+    googleImplementation(libs.dd.sdk.android.session.replay.material)
     googleImplementation(libs.dd.sdk.android.timber)
     googleImplementation(libs.dd.sdk.android.trace)
     googleImplementation(libs.dd.sdk.android.trace.otel)
@@ -304,9 +308,10 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.koin.test)
 
+    testImplementation(kotlin("test-junit"))
     testImplementation(libs.androidx.work.testing)
     testImplementation(libs.koin.test)
-    testImplementation(libs.junit)
+    testRuntimeOnly(libs.junit.vintage.engine)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
