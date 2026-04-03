@@ -51,6 +51,7 @@ import org.meshtastic.core.resources.remotely_administrating
 import org.meshtastic.core.ui.component.ListItem
 import org.meshtastic.core.ui.component.MainAppBar
 import org.meshtastic.core.ui.component.MeshtasticDialog
+import org.meshtastic.feature.achievements.navigation.AchievementsRoutes
 import org.meshtastic.feature.settings.component.AppInfoSection
 import org.meshtastic.feature.settings.component.AppearanceSection
 import org.meshtastic.feature.settings.component.PersistenceSection
@@ -246,6 +247,7 @@ fun SettingsScreen(
                     onUnlockModules = { settingsViewModel.unlockExcludedModules() },
                     onShowAppIntro = { settingsViewModel.showAppIntro() },
                     onNavigateToAbout = { onNavigate(SettingsRoutes.About) },
+                    onNavigateToAchievements = { onNavigate(AchievementsRoutes.Achievements) },
                 )
             }
         }

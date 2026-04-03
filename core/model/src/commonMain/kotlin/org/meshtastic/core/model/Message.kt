@@ -109,6 +109,8 @@ data class Message(
      */
     val durationMs: Int = 0,
 ) {
+    /** Alias for [durationMs], used by VoiceBurstPlayer UI. */
+    val voiceDurationMs: Int get() = durationMs
     fun getStatusStringRes(): Pair<StringResource, StringResource> {
         val title = if (routingError > 0) Res.string.error else Res.string.message_delivery_status
         val text =

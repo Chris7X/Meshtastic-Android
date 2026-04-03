@@ -18,7 +18,9 @@ package org.meshtastic.core.database.dao
 
 import androidx.paging.PagingSource
 import androidx.room3.Dao
+import androidx.room3.Insert
 import androidx.room3.MapColumn
+import androidx.room3.OnConflictStrategy
 import androidx.room3.Query
 import androidx.room3.Transaction
 import androidx.room3.Update
@@ -159,6 +161,9 @@ interface PacketDao {
     suspend fun clearAllUnreadCounts()
 
     @Upsert suspend fun insert(packet: Packet)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAndGetId(packet: Packet): Long
 
     @Transaction
     @Query(
@@ -415,7 +420,7 @@ interface PacketDao {
         """
         SELECT COUNT(*) FROM packet
         WHERE (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
-            AND port_num = 1 AND contact_key = :contact AND filtered = 1
+            AND port_num IN (1, 256) AND contact_key = :contact AND filtered = 1
         """,
     )
     suspend fun getFilteredCount(contact: String): Int
@@ -424,7 +429,7 @@ interface PacketDao {
         """
         SELECT COUNT(*) FROM packet
         WHERE (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
-            AND port_num = 1 AND contact_key = :contact AND filtered = 1
+            AND port_num IN (1, 256) AND contact_key = :contact AND filtered = 1
         """,
     )
     fun getFilteredCountFlow(contact: String): Flow<Int>
@@ -434,7 +439,7 @@ interface PacketDao {
         """
         SELECT * FROM packet
         WHERE (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
-            AND port_num = 1 AND contact_key = :contact
+            AND port_num IN (1, 256) AND contact_key = :contact
             AND (filtered = 0 OR :includeFiltered = 1)
         ORDER BY received_time DESC
         """,

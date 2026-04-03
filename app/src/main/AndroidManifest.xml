@@ -70,6 +70,9 @@
     <!-- Needed to open our bluetooth connection to our paired device (after reboot) -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- Microphone permission for Voice Burst PTT recording -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
     <!-- Camera permission for QR Code scanning -->
     <uses-permission android:name="android.permission.CAMERA" />
 

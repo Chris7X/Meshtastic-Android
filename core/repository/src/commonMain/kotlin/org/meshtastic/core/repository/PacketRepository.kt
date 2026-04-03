@@ -82,6 +82,7 @@ interface PacketRepository {
      * @param receivedTime The timestamp (ms) the packet was received.
      * @param read Whether the packet should be marked as already read.
      * @param filtered Whether the packet was filtered by message rules.
+     * @return The auto-generated database UUID assigned to the inserted row.
      */
     suspend fun savePacket(
         myNodeNum: Int,
@@ -90,7 +91,7 @@ interface PacketRepository {
         receivedTime: Long,
         read: Boolean = true,
         filtered: Boolean = false,
-    )
+    ): Long
 
     /**
      * Returns a reactive flow of messages for a conversation.

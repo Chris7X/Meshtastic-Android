@@ -24,6 +24,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.AppSettingsAlt
+import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.Notifications
@@ -51,6 +52,7 @@ import org.meshtastic.core.resources.intro_show
 import org.meshtastic.core.resources.modules_already_unlocked
 import org.meshtastic.core.resources.modules_unlocked
 import org.meshtastic.core.resources.system_settings
+import org.meshtastic.core.resources.achievement_title_screen
 import org.meshtastic.core.resources.voice_burst_experimental
 import org.meshtastic.core.resources.smart_reply_experimental
 import org.meshtastic.core.ui.component.ListItem
@@ -71,6 +73,7 @@ fun AppInfoSection(
     onUnlockModules: () -> Unit,
     onShowAppIntro: () -> Unit,
     onNavigateToAbout: () -> Unit,
+    onNavigateToAchievements: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val settingsLauncher =
@@ -113,6 +116,14 @@ fun AppInfoSection(
             trailingIcon = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
         ) {
             onNavigateToAbout()
+        }
+
+        ListItem(
+            text = stringResource(Res.string.achievement_title_screen),
+            leadingIcon = Icons.Rounded.EmojiEvents,
+            trailingIcon = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+        ) {
+            onNavigateToAchievements()
         }
 
         if (excludedModulesUnlocked) {
@@ -197,6 +208,7 @@ private fun AppInfoSectionPreview() {
             onUnlockModules = {},
             onShowAppIntro = {},
             onNavigateToAbout = {},
+            onNavigateToAchievements = {},
         )
     }
 }

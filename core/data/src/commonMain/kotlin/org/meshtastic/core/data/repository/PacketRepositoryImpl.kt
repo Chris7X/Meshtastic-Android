@@ -114,6 +114,9 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
     suspend fun insertRoomPacket(packet: RoomPacket) =
         withContext(dispatchers.io) { dbManager.currentDb.value.packetDao().insert(packet) }
 
+    private suspend fun insertRoomPacketAndGetId(packet: RoomPacket): Long =
+        withContext(dispatchers.io) { dbManager.currentDb.value.packetDao().insertAndGetId(packet) }
+
     override suspend fun savePacket(
         myNodeNum: Int,
         contactKey: String,
@@ -121,7 +124,7 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
         receivedTime: Long,
         read: Boolean,
         filtered: Boolean,
-    ) {
+    ): Long {
         val packetToSave =
             RoomPacket(
                 uuid = 0L,
@@ -137,7 +140,7 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
                 hopsAway = packet.hopsAway,
                 filtered = filtered,
             )
-        insertRoomPacket(packetToSave)
+        return insertRoomPacketAndGetId(packetToSave)
     }
 
     override suspend fun getMessagesFrom(

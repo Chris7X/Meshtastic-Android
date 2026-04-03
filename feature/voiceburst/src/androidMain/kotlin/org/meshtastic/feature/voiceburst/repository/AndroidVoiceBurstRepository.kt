@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2026 Chris7X
+ * Copyright (c) 2026 Meshtastic LLC
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@ import androidx.datastore.preferences.core.edit
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
@@ -47,27 +48,11 @@ private const val TAG = "AndroidVoiceBurstRepository"
 /**
  * Android implementation of [VoiceBurstRepository].
  *
- * Audio persistence architecture (WhatsApp/Telegram style):
- *   - Each received burst is saved as a file <filesDir>/voice_bursts/<packetId>.c2
- *   - The relative path ("voice_bursts/<id>.c2") is inserted in Message.audioFilePath
- *   - The UI resolves the absolute path via context.filesDir at playback time
- *   - The file persists until the user deletes the chat or clears the cache
- *
- * Sent bursts are also saved (the sender can replay their own message).
- *
- * ## Packet ID assignment flow
- *
- * When [sendBurst] is called, the [DataPacket] starts with id = 0 (unassigned).
- * [RadioController.sendMessage] hands the packet to the mesh service, which assigns
- * the real mesh-layer packet ID and updates [DataPacket.id] in-place before returning.
- * The audio file must therefore be saved AFTER [RadioController.sendMessage] returns,
- * using the now-populated [DataPacket.id] as the file name Ã¢â‚¬â€ matching the convention
- * used on the receive side in [processIncomingBurst].
- *
- * If the radio is not connected at send time, the packet is queued with id = 0.
- * In that case we skip saving the sender's audio file; the sender will not be able
- * to replay the message until the device reconnects and the packet is delivered.
- * This is acceptable behaviour for MVP.
+ * Audio persistence: each burst (sent or received) is stored as
+ * <filesDir>/voice_bursts/<uuid>.c2, where uuid is the Room-generated
+ * primary key returned by [PacketRepository.savePacket].
+ * [PacketEntity.toMessage] reconstructs the path deterministically
+ * as "voice_bursts/$uuid.c2" — no extra DB column needed.
  */
 class AndroidVoiceBurstRepository(
     private val radioController: RadioController,
@@ -79,20 +64,19 @@ class AndroidVoiceBurstRepository(
     private val scope: kotlinx.coroutines.CoroutineScope,
 ) : VoiceBurstRepository {
 
-    /** Directory where .c2 files are saved: <filesDir>/voice_bursts/ */
     private val voiceBurstsDir: File by lazy {
         File(context.filesDir, "voice_bursts").also { it.mkdirs() }
     }
 
-    // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Feature flag Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+    // ─── Feature flag ─────────────────────────────────────────────────────────
 
     private val featureEnabledFlow = dataStore.data
-        .map { prefs -> prefs[KEY_FEATURE_ENABLED] ?: false }
+        .map { prefs -> prefs[KEY_FEATURE_ENABLED] ?: true } // Default ON
 
     override val isFeatureEnabled: StateFlow<Boolean> =
         featureEnabledFlow.stateIn(
             scope = scope,
-            started = kotlinx.coroutines.flow.SharingStarted.Eagerly,
+            started = SharingStarted.Eagerly,
             initialValue = false,
         )
 
@@ -101,7 +85,7 @@ class AndroidVoiceBurstRepository(
         Logger.i(tag = TAG) { "Voice Burst feature: ${if (enabled) "enabled" else "disabled"}" }
     }
 
-    // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Send Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+    // ─── Send ──────────────────────────────────────────────────────────────────
 
     override suspend fun sendBurst(payload: VoiceBurstPayload, contactKey: String): Boolean {
         val channelDigit = contactKey.firstOrNull()?.digitToIntOrNull()
@@ -121,9 +105,8 @@ class AndroidVoiceBurstRepository(
                 wantAck = true,
                 status = MessageStatus.ENROUTE,
             )
-            // packet.id == 0 here Ã¢â‚¬â€ the radio service has not assigned an ID yet.
 
-            // Step 1: persist to DB so the chat bubble appears immediately.
+            // Step 1: persist to DB — returns the Room uuid used as audio filename.
             val uuid = packetRepository.savePacket(
                 myNodeNum = myNodeNum,
                 contactKey = contactKey,
@@ -132,14 +115,13 @@ class AndroidVoiceBurstRepository(
                 read = true,
             )
 
-            // Step 2: hand the packet to the radio.
-            radioController.sendMessage(packet)
-
-            Logger.i(tag = TAG) { "Burst sent to $destNodeId: ${payload.audioData.size} audio bytes, uuid=$uuid, packetId=${packet.id}" }
-
-            // Step 3: save the audio file for sender-side replay using the stable DB uuid.
-            saveAudioFile(uuid.toString(), payload.audioData)
+            // Step 2: save audio BEFORE sending so replay works immediately even if radio fails.
+            saveAudioFile(uuid, payload.audioData)
             Logger.d(tag = TAG) { "Sender audio saved: voice_bursts/$uuid.c2" }
+
+            // Step 3: hand the packet to the radio.
+            radioController.sendMessage(packet)
+            Logger.i(tag = TAG) { "Burst sent to $destNodeId: ${payload.audioData.size} bytes, uuid=$uuid" }
 
             true
         } catch (e: Exception) {
@@ -148,7 +130,7 @@ class AndroidVoiceBurstRepository(
         }
     }
 
-    // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Receive Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+    // ─── Receive ───────────────────────────────────────────────────────────────
 
     private val _incomingBursts = MutableSharedFlow<VoiceBurstPayload>(replay = 0, extraBufferCapacity = 8)
     override val incomingBursts: Flow<VoiceBurstPayload> = _incomingBursts
@@ -205,7 +187,7 @@ class AndroidVoiceBurstRepository(
                 return
             }
 
-            // Save to DB so the chat bubble appears.
+            // Save to DB — uuid is the Room primary key used as audio filename.
             val uuid = packetRepository.savePacket(
                 myNodeNum = myNodeNum,
                 contactKey = contactKey,
@@ -214,8 +196,8 @@ class AndroidVoiceBurstRepository(
                 read = false,
             )
 
-            // Save audio to disk using the stable DB uuid as the file name.
-            saveAudioFile(uuid.toString(), payload.audioData)
+            // Save audio to disk — filename matches what PacketEntity.toMessage() builds.
+            saveAudioFile(uuid, payload.audioData)
             Logger.i(tag = TAG) { "Burst saved: contactKey=$contactKey file=voice_bursts/$uuid.c2" }
 
         } catch (e: Exception) {
@@ -226,30 +208,28 @@ class AndroidVoiceBurstRepository(
         _incomingBursts.tryEmit(payload.copy(senderNodeId = fromId))
     }
 
-    // Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Audio file I/O Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+    // ─── Audio file I/O ────────────────────────────────────────────────────────
 
     /**
-     * Saves the compressed Codec2 bytes to a .c2 file named after [identifier].
-     *
-     * Naming convention: voice_bursts/<uuid>.c2
-     * This matches the [Message] model expectation.
+     * Saves Codec2 bytes to <voiceBurstsDir>/<uuid>.c2.
+     * The filename must match the path built by PacketEntity.toMessage():
+     *   audioFilePath = "voice_bursts/$uuid.c2"
      */
-    private fun saveAudioFile(identifier: String, audioData: ByteArray) {
+    private fun saveAudioFile(uuid: Long, audioData: ByteArray) {
         try {
-            val file = File(voiceBurstsDir, "$identifier.c2")
+            val file = File(voiceBurstsDir, "$uuid.c2")
             file.writeBytes(audioData)
             Logger.d(tag = TAG) { "Audio saved: ${file.absolutePath} (${audioData.size} bytes)" }
         } catch (e: Exception) {
-            Logger.e(e, tag = TAG) { "Error writing audio file for identifier=$identifier" }
+            Logger.e(e, tag = TAG) { "Error writing audio file for uuid=$uuid" }
         }
     }
 
     /**
-     * Reads the Codec2 bytes from disk given a relative path.
-     * Used by the ViewModel to play a saved voice message.
+     * Reads Codec2 bytes from disk given a relative path.
+     * Called by VoiceBurstViewModel to replay a saved voice message.
      *
      * @param relativePath e.g. "voice_bursts/12345678.c2"
-     * @return ByteArray with the Codec2 bytes, or null if the file does not exist
      */
     override fun readAudioFile(relativePath: String): ByteArray? {
         return try {

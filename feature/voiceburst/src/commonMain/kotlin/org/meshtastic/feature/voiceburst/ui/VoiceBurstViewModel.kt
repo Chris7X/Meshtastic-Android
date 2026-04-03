@@ -257,9 +257,10 @@ class VoiceBurstViewModel(
      */
     fun playBurst(relativePath: String) {
         if (audioPlayer.isPlaying) {
+            val wasPlayingThis = audioPlayer.playingFilePath.value == relativePath
             audioPlayer.stop()
-            // Second tap toggles playback off.
-            if (audioPlayer.playingFilePath.value == relativePath) return
+            // Second tap on the same bubble = stop only.
+            if (wasPlayingThis) return
         }
         viewModelScope.launch {
             val codec2Bytes = repository.readAudioFile(relativePath)

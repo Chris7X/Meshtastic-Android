@@ -195,7 +195,11 @@ fun NodeListScreen(
                             NodeContextMenu(
                                 expanded = expanded,
                                 node = node,
-                                onMessage = { onNavigateToMessaging(node.user.id) },
+                                onMessage = {
+                                    val hasPKC = ourNode?.hasPKC == true
+                                    val channel = if (hasPKC) org.meshtastic.core.model.DataPacket.PKC_CHANNEL_INDEX else node.channel
+                                    onNavigateToMessaging("${channel}${node.user.id}")
+                                },
                                 onFavorite = { viewModel.favoriteNode(node) },
                                 onIgnore = { viewModel.ignoreNode(node) },
                                 onMute = { viewModel.muteNode(node) },
